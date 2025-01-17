@@ -51,7 +51,7 @@ class CampaignViewSet(viewsets.ViewSet):
 
     @authenticate
     @authorize([UserRoleType.super_admin])
-    @action(detail=True, methods=['put'])
+    @action(detail=True, methods=['patch'])
     def update(self, request, pk=None):
         try:
             campaign_data = CampaignService.update_campaign(pk, request.data)
@@ -66,11 +66,10 @@ class CampaignViewSet(viewsets.ViewSet):
     @authorize([UserRoleType.super_admin])
     @action(detail=True, methods=['delete'])
     def destroy(self, request, pk=None):
-        def destroy(self, request, pk=None):
-            try:
-                CampaignService.delete_campaign(pk)
-                return Response({'message': 'Campaign soft deleted successfully'}, status=status.HTTP_204_NO_CONTENT)
-            except NoResultFound as e:
-                return Response({'error': str(e)}, status=status.HTTP_404_NOT_FOUND)
-            except Exception as e:
-                return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+        try:
+            CampaignService.delete_campaign(pk)
+            return Response({'message': 'Campaign soft deleted successfully'}, status=status.HTTP_204_NO_CONTENT)
+        except NoResultFound as e:
+            return Response({'error': str(e)}, status=status.HTTP_404_NOT_FOUND)
+        except Exception as e:
+            return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
