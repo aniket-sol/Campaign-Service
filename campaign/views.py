@@ -2,12 +2,9 @@ from rest_framework import viewsets, status
 from rest_framework.response import Response
 from rest_framework.decorators import action
 from sqlalchemy.exc import NoResultFound
-
-from .models import UserCampaign, CampaignStatus
 from .serializers import UserCampaignSerializer
 from users.models import UserRoleType
 from users.auth import authenticate, authorize
-from utils import db_manager
 from .services import CampaignService
 from datetime import datetime
 

@@ -37,39 +37,36 @@ class UserViewSet(ViewSet):
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     def login(self, request):
-        # Serialize the request data
+        """
+                Authenticate a user and provide a session token.
+                """
         serializer = UserLoginSerializer(data=request.data)
-
         if serializer.is_valid():
-            email = serializer.validated_data["email"]
-            password = serializer.validated_data["password"]
-
-            # Authenticate user using AuthService (no need to pass db_session)
-            session_data = AuthService.authenticate_user(email, password)
-
-            # Return response with session token and expiration time
-            return Response({
-                "message": "Login successful",
-                "session_token": session_data["session_token"],
-                "expires_at": session_data["expires_at"].isoformat()
-            }, status=status.HTTP_200_OK)
-
-        # If serializer is invalid, return validation errors
+            try:
+                session_data = AuthService.authenticate_user(
+                    email=serializer.validated_data["email"],
+                    password=serializer.validated_data["password"]
+                )
+                return Response({
+                    "message": "Login successful",
+                    "session_token": session_data["session_token"],
+                    "expires_at": session_data["expires_at"].isoformat()
+                }, status=status.HTTP_200_OK)
+            except AuthenticationFailed as e:
+                return Response({"error": str(e)}, status=status.HTTP_401_UNAUTHORIZED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     def logout(self, request):
-        session_token = request.data.get('session_token')
-
-        if not session_token:
-            return Response({"error": "Session token is required"}, status=status.HTTP_400_BAD_REQUEST)
-
         try:
-            # Invalidate the session using the AuthService method without passing db_session
-            AuthService.invalidate_session(session_token)
-            return Response({
-                "message": "User logged out successfully"
-            }, status=status.HTTP_200_OK)
+            # Validate the session and get the user (this ensures the session is active)
+            session_token = None  # Optional if request headers contain the token
+            user = AuthService.validate_session(session_token=session_token, request=request)
+
+            # Invalidate the session
+            AuthService.invalidate_session(request.session_token)
+
+            return Response({"message": "User logged out successfully"}, status=status.HTTP_200_OK)
+
         except AuthenticationFailed as e:
-            # If session invalidation fails, return the error
-            return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({"error": str(e)}, status=status.HTTP_401_UNAUTHORIZED)
 

@@ -89,6 +89,9 @@ class AuthService:
             if not user:
                 raise AuthenticationFailed("User not found for the session")
 
+            if request is not None:
+                request.session_token = session_token
+
             return user
 
     @staticmethod
