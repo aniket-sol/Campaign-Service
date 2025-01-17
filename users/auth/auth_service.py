@@ -52,7 +52,7 @@ class AuthService:
             }
 
     @staticmethod
-    def validate_session(session_token: str) -> User:
+    def validate_session(session_token: str = None, request=None) -> User:
         """
         Validates a session token and retrieves the associated user.
 
@@ -65,6 +65,15 @@ class AuthService:
         Raises:
             AuthenticationFailed: If the token is invalid or expired.
         """
+        if not session_token:
+            if not request or not request.headers.get("Authorization"):
+                raise AuthenticationFailed("Session token is missing")
+            # Extract the token from the Authorization header
+            auth_header = request.headers.get("Authorization")
+            if not auth_header.startswith("Bearer "):
+                raise AuthenticationFailed("Invalid Authorization header format")
+            session_token = auth_header[len("Bearer "):].strip()
+
         # print(session_token)
         with db_manager.get_db() as db_session:
             user_session = db_session.query(UserSession).filter(
