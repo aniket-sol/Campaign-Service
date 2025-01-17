@@ -1,7 +1,7 @@
 from django.urls import path
-from . import views
+from .views import CampaignViewSet
 
 urlpatterns = [
-    path('campaign/', views.campaign_list, name='campaign-list'),  # GET, POST
-    path('campaign/<int:campaign_id>/', views.campaign_detail, name='campaign-detail'),  # GET, PUT, DELETE
+    path('', CampaignViewSet.as_view({'get': 'list', 'post': 'create'})),  # for listing and creating campaigns
+    path('campaign/<int:pk>/', CampaignViewSet.as_view({'get': 'retrieve', 'put': 'update', 'delete': 'destroy'})),  # for detailed views
 ]

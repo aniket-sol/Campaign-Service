@@ -1,211 +1,79 @@
-from http import HTTPStatus
-from django.contrib.auth import authenticate
-from django.http import JsonResponse
-from django.views.decorators.http import require_http_methods
-from sqlalchemy.exc import IntegrityError
-from datetime import datetime
-from users.models import UserRoleType
-from users.auth import AuthService
+from rest_framework import viewsets, status
+from rest_framework.response import Response
+from rest_framework.decorators import action
+from sqlalchemy.exc import NoResultFound
+
 from .models import UserCampaign, CampaignStatus
+from .serializers import UserCampaignSerializer
+from users.models import UserRoleType
+from users.auth import authenticate, authorize
 from utils import db_manager
+from .services import CampaignService
+from datetime import datetime
 
-@require_http_methods(["GET", "POST"])
-def campaign_list(request):
-    session_token = request.data.get("session_token")
-    user_id = request.data.get("user_id")
+
+class CampaignViewSet(viewsets.ViewSet):
     """
-    GET: List all campaigns
-    POST: Create a new campaign
+    A ViewSet for listing, creating, retrieving, updating, and deleting campaigns.
     """
-    if not AuthService.validate_session(session_token):
-        return JsonResponse(
-            {"error": "Authentication required"},
-            status=HTTPStatus.UNAUTHORIZED
-        )
 
-    # Using db_manager to get a session from the context manager
-    with db_manager.get_db() as db_session:
-        if request.method == "GET":
-            if not AuthService.is_authorized(user_id, [UserRoleType.super_admin, UserRoleType.admin]):
-                return JsonResponse(
-                    {"error": "Permission denied"},
-                    status=HTTPStatus.FORBIDDEN
-                )
+    @authenticate
+    @authorize([UserRoleType.admin, UserRoleType.super_admin])
+    def list(self, request):
+        try:
+            campaigns = CampaignService.list_campaigns()
+            return Response({'campaigns': campaigns}, status=status.HTTP_200_OK)
+        except Exception as e:
+            return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
+    @authenticate
+    @authorize([UserRoleType.super_admin])
+    @action(detail=False, methods=['post'])
+    def create(self, request):
+        serializer = UserCampaignSerializer(data=request.data)
+        if serializer.is_valid():
             try:
-                campaigns = db_session.query(UserCampaign).all()
-                campaigns_data = [{
-                    'id': campaign.id,
-                    'title': campaign.title,
-                    'description': campaign.description,
-                    'status': campaign.status,
-                    'created_at': campaign.created_at.isoformat(),
-                    'created_by': campaign.created_by,
-                    'targets': [{
-                        'practice_id': target.practice_id,
-                        'role': target.role.value
-                    } for target in campaign.targets]
-                } for campaign in campaigns]
-
-                return JsonResponse({'campaigns': campaigns_data})
-
+                campaign_data = CampaignService.create_campaign(serializer.validated_data, request.user)
+                return Response({'message': 'Campaign created successfully', 'campaign': campaign_data},
+                                status=status.HTTP_201_CREATED)
             except Exception as e:
-                return JsonResponse(
-                    {'error': str(e)},
-                    status=HTTPStatus.INTERNAL_SERVER_ERROR
-                )
+                return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-        elif request.method == "POST":
-            if not AuthService.is_authorized(user_id, [UserRoleType.super_admin]):
-                return JsonResponse(
-                    {"error": "Permission denied"},
-                    status=HTTPStatus.FORBIDDEN
-                )
+    @authenticate
+    @authorize([UserRoleType.super_admin, UserRoleType.admin])
+    @action(detail=True, methods=['get'])
+    def retrieve(self, request, pk=None):
+        try:
+            campaign = CampaignService.retrieve_campaign(pk)
+            return Response({'campaign': campaign}, status=status.HTTP_200_OK)
+        except NoResultFound as e:
+            return Response({'error': str(e)}, status=status.HTTP_404_NOT_FOUND)
+        except Exception as e:
+            return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
+    @authenticate
+    @authorize([UserRoleType.super_admin])
+    @action(detail=True, methods=['put'])
+    def update(self, request, pk=None):
+        try:
+            campaign_data = CampaignService.update_campaign(pk, request.data)
+            return Response({'message': 'Campaign updated successfully', 'campaign': campaign_data},
+                            status=status.HTTP_200_OK)
+        except NoResultFound as e:
+            return Response({'error': str(e)}, status=status.HTTP_404_NOT_FOUND)
+        except Exception as e:
+            return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+    @authenticate
+    @authorize([UserRoleType.super_admin])
+    @action(detail=True, methods=['delete'])
+    def destroy(self, request, pk=None):
+        def destroy(self, request, pk=None):
             try:
-                data = request.json()
-
-                campaign = UserCampaign(
-                    title=data['title'],
-                    description=data.get('description'),
-                    status=CampaignStatus.DRAFT.value,
-                    created_by=user_id  # You can use the user_id from request here
-                )
-
-                db_session.add(campaign)
-                db_session.commit()
-
-                return JsonResponse({
-                    'message': 'Campaign created successfully',
-                    'campaign_id': campaign.id
-                }, status=HTTPStatus.CREATED)
-
-            except IntegrityError:
-                db_session.rollback()
-                return JsonResponse(
-                    {'error': 'Campaign with this title already exists'},
-                    status=HTTPStatus.BAD_REQUEST
-                )
-            except KeyError as e:
-                return JsonResponse(
-                    {'error': f'Missing required field: {str(e)}'},
-                    status=HTTPStatus.BAD_REQUEST
-                )
+                CampaignService.delete_campaign(pk)
+                return Response({'message': 'Campaign soft deleted successfully'}, status=status.HTTP_204_NO_CONTENT)
+            except NoResultFound as e:
+                return Response({'error': str(e)}, status=status.HTTP_404_NOT_FOUND)
             except Exception as e:
-                db_session.rollback()
-                return JsonResponse(
-                    {'error': str(e)},
-                    status=HTTPStatus.INTERNAL_SERVER_ERROR
-                )
-
-
-@require_http_methods(["GET", "PUT", "DELETE"])
-def campaign_detail(request, campaign_id: int):
-    """
-    GET: Retrieve a specific campaign
-    PUT: Update a specific campaign
-    DELETE: Delete a specific campaign
-    """
-    if not AuthService.validate_session(request.data.get("session_token")):
-        return JsonResponse(
-            {"error": "Authentication required"},
-            status=HTTPStatus.UNAUTHORIZED
-        )
-
-    # Using db_manager to get a session from the context manager
-    with db_manager.get_db() as db_session:
-        # Check if campaign exists
-        campaign = db_session.query(UserCampaign).filter(
-            UserCampaign.id == campaign_id
-        ).first()
-
-        if not campaign:
-            return JsonResponse(
-                {'error': 'Campaign not found'},
-                status=HTTPStatus.NOT_FOUND
-            )
-
-        if request.method == "GET":
-            if not AuthService.is_authorized(request.data.get("user_id"), [UserRoleType.super_admin, UserRoleType.admin]):
-                return JsonResponse(
-                    {"error": "Permission denied"},
-                    status=HTTPStatus.FORBIDDEN
-                )
-
-            try:
-                campaign_data = {
-                    'id': campaign.id,
-                    'title': campaign.title,
-                    'description': campaign.description,
-                    'status': campaign.status,
-                    'created_at': campaign.created_at.isoformat(),
-                    'created_by': campaign.created_by,
-                    'targets': [{
-                        'practice_id': target.practice_id,
-                        'role': target.role.value
-                    } for target in campaign.targets]
-                }
-
-                return JsonResponse({'campaign': campaign_data})
-
-            except Exception as e:
-                return JsonResponse(
-                    {'error': str(e)},
-                    status=HTTPStatus.INTERNAL_SERVER_ERROR
-                )
-
-        elif request.method == "PUT":
-            if not AuthService.is_authorized(request.data.get("user_id"), [UserRoleType.super_admin]):
-                return JsonResponse(
-                    {"error": "Permission denied"},
-                    status=HTTPStatus.FORBIDDEN
-                )
-
-            try:
-                data = request.json()
-
-                # Update fields if provided
-                if 'title' in data:
-                    campaign.title = data['title']
-                if 'description' in data:
-                    campaign.description = data['description']
-                if 'status' in data:
-                    campaign.status = data['status']
-
-                campaign.updated_at = datetime.now()
-                db_session.commit()
-
-                return JsonResponse({'message': 'Campaign updated successfully'})
-
-            except IntegrityError:
-                db_session.rollback()
-                return JsonResponse(
-                    {'error': 'Campaign with this title already exists'},
-                    status=HTTPStatus.BAD_REQUEST
-                )
-            except Exception as e:
-                db_session.rollback()
-                return JsonResponse(
-                    {'error': str(e)},
-                    status=HTTPStatus.INTERNAL_SERVER_ERROR
-                )
-
-        elif request.method == "DELETE":
-            if not AuthService.is_authorized(request.data.get("user_id"), [UserRoleType.super_admin]):
-                return JsonResponse(
-                    {"error": "Permission denied"},
-                    status=HTTPStatus.FORBIDDEN
-                )
-
-            try:
-                db_session.delete(campaign)
-                db_session.commit()
-
-                return JsonResponse({'message': 'Campaign deleted successfully'})
-
-            except Exception as e:
-                db_session.rollback()
-                return JsonResponse(
-                    {'error': str(e)},
-                    status=HTTPStatus.INTERNAL_SERVER_ERROR
-                )
+                return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
