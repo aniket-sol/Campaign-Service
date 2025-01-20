@@ -50,7 +50,10 @@ class UserViewSet(ViewSet):
                 return Response({
                     "message": "Login successful",
                     "session_token": session_data["session_token"],
-                    "expires_at": session_data["expires_at"].isoformat()
+                    "expires_at": session_data["expires_at"].isoformat(),
+                    "username": session_data["username"],
+                    "roleType": session_data["role"],
+                    "email": session_data["email"]
                 }, status=status.HTTP_200_OK)
             except AuthenticationFailed as e:
                 return Response({"error": str(e)}, status=status.HTTP_401_UNAUTHORIZED)

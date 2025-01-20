@@ -36,6 +36,6 @@ class UserCreateSerializer(serializers.Serializer):
         return value
 
 class UserLoginSerializer(serializers.Serializer):
-    username = serializers.CharField()
+    # username = serializers.CharField()
     email = serializers.EmailField()
     password = serializers.CharField(write_only=True)

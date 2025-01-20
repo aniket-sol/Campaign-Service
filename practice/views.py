@@ -11,7 +11,7 @@ from utils import db_manager
 
 class PracticeViewSet(viewsets.ViewSet):
 
-    @authenticate
+    # @authenticate
     def list(self, request):
         with db_manager.get_db() as db_session:
             practices = db_session.query(Practice).all()

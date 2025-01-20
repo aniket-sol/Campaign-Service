@@ -44,11 +44,13 @@ class AuthService:
             )
             db_session.add(user_session)
             db_session.commit()
-
             return {
                 "user_id": user.id,
                 "session_token": session_token,
-                "expires_at": expires_at
+                "expires_at": expires_at,
+                "username": user.username,
+                "role": user.role,
+                "email": user.email,
             }
 
     @staticmethod
