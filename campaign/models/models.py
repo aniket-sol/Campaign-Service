@@ -12,9 +12,7 @@ Base = db_manager.Base
 class CampaignStatus(enum.Enum):
     DRAFT = "DRAFT"
     SCHEDULED = "SCHEDULED"
-    IN_PROGRESS = "IN_PROGRESS"
-    COMPLETED = "COMPLETED"
-    FAILED = "FAILED"
+    IN_PROGRESS = "SENT"
 
 class MessageStatus(enum.Enum):
     # PENDING = "PENDING"
@@ -46,7 +44,8 @@ class UserCampaignSequence(Base):
     id = Column(BigInteger, primary_key=True)
     user_campaign_id = Column(BigInteger, ForeignKey('user_campaigns.id'), nullable=False)
     scheduled_date = Column(DateTime(timezone=True), nullable=False)
-    status = Column(String, nullable=False)
+    schedule_time = Column(DateTime(timezone=True)),  # New column
+    status = Column(SQLEnum(CampaignStatus), nullable=False),  # Updated to use Enum
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.current_timestamp())
     created_by = Column(BigInteger, ForeignKey('users.id'), nullable=False)

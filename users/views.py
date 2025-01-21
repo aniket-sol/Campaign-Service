@@ -16,24 +16,27 @@ class UserViewSet(ViewSet):
     # permission_classes = [IsAuthenticated]
 
     def create(self, request):
-        # Open a database session
         with db_manager.get_db() as db_session:
-            # Initialize the serializer with the database session
+            # Use the serializer for validation
             serializer = UserCreateSerializer(data=request.data, db_session=db_session)
             if serializer.is_valid():
-                # Pass the validated data to the service class
                 user_service = UserService(db_session)
-                user = user_service.create_user(
-                    username=serializer.validated_data['username'],
-                    email=serializer.validated_data['email'],
-                    password=serializer.validated_data['password'],
-                    first_name=serializer.validated_data.get('first_name'),
-                    last_name=serializer.validated_data.get('last_name')
-                )
-                return Response({
-                    "message": "User created successfully",
-                    "user_id": user.id
-                }, status=status.HTTP_201_CREATED)
+                try:
+                    user = user_service.create_user_with_practice(
+                        validated_data=serializer.validated_data
+                    )
+                    return Response(
+                        {
+                            "message": "User created successfully",
+                            "user_id": user.id,
+                        },
+                        status=status.HTTP_201_CREATED,
+                    )
+                except ValueError as e:
+                    return Response(
+                        {"error": str(e)},
+                        status=status.HTTP_400_BAD_REQUEST,
+                    )
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     def login(self, request):
@@ -53,7 +56,8 @@ class UserViewSet(ViewSet):
                     "expires_at": session_data["expires_at"].isoformat(),
                     "username": session_data["username"],
                     "roleType": session_data["role"],
-                    "email": session_data["email"]
+                    "email": session_data["email"],
+                    "name": session_data["first_name"] + " " + session_data["last_name"],
                 }, status=status.HTTP_200_OK)
             except AuthenticationFailed as e:
                 return Response({"error": str(e)}, status=status.HTTP_401_UNAUTHORIZED)

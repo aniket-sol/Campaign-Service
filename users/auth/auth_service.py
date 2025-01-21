@@ -51,6 +51,8 @@ class AuthService:
                 "username": user.username,
                 "role": user.role,
                 "email": user.email,
+                "first_name": user.first_name,
+                "last_name": user.last_name,
             }
 
     @staticmethod
@@ -93,7 +95,6 @@ class AuthService:
 
             if request is not None:
                 request.session_token = session_token
-
             return user
 
     @staticmethod
@@ -120,6 +121,7 @@ class AuthService:
 
     @staticmethod
     def is_authorized(user_id: int, allowed_roles: list) -> None:
+        # print(user_id, allowed_roles)
         # Retrieve the user from the database
         with db_manager.get_db() as db_session:
             user = db_session.query(User).filter(User.id == user_id).first()

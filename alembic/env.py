@@ -7,9 +7,11 @@ from alembic import context
 
 # import your models here
 from centralised_models import Base
-
 import os
-database_url = os.getenv("DATABASE_URL")
+from dotenv import load_dotenv
+
+load_dotenv()
+database_url = os.getenv('DATABASE_URL')
 
 
 fileConfig(context.config.config_file_name)
@@ -69,6 +71,7 @@ def run_migrations_online() -> None:
     """
     connectable = engine_from_config(
         config.get_section(config.config_ini_section, {}),
+        url = database_url,
         prefix="sqlalchemy.",
         poolclass=pool.NullPool,
     )

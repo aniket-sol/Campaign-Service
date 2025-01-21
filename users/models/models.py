@@ -9,8 +9,8 @@ Base = db_manager.Base
 
 # SQLAlchemy Models
 class UserRoleType(str, Enum):
-    super_admin = "Practice by Numbers Support"
-    admin = "Admin"
+    super_admin = "Super Admin"
+    admin = "Practice Admin"
     practice_user = "Practice User"
 
 

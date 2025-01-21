@@ -1,13 +1,14 @@
 from sqlalchemy.orm import Session
-from ..models import User
+from ..models import User, Practice
 from rest_framework import serializers
 
 class UserCreateSerializer(serializers.Serializer):
     username = serializers.CharField(required=True)
     email = serializers.EmailField(required=True)
     password = serializers.CharField(write_only=True)
-    first_name = serializers.CharField(required=False, allow_blank=True)
-    last_name = serializers.CharField(required=False, allow_blank=True)
+    first_name = serializers.CharField(required=True)
+    last_name = serializers.CharField(required=True)
+    practice_id = serializers.IntegerField()
 
 
     def __init__(self, *args, **kwargs):
@@ -33,6 +34,16 @@ class UserCreateSerializer(serializers.Serializer):
         user_exists = self.db_session.query(User).filter(User.username == value).first()
         if user_exists:
             raise serializers.ValidationError("Username already registered")
+        return value
+
+    def validate_practice_id(self, value):
+        """
+        Validate that the practice_id exists in the database.
+        """
+        if value:
+            practice = self.db_session.query(Practice).filter_by(id=value).first()
+            if not practice:
+                raise serializers.ValidationError(f"Practice with ID {value} does not exist.")
         return value
 
 class UserLoginSerializer(serializers.Serializer):
