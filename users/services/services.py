@@ -35,12 +35,9 @@ class UserService:
             first_name=first_name,
             last_name=last_name,
         )
-        print(user)
-        print(practice_id)
 
         # Associate user with practice if practice_id is provided
         if practice_id:
-            print('calling associate method')
             self._associate_user_with_practice(user.id, practice_id)
 
         return user

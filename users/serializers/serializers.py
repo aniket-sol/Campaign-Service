@@ -8,7 +8,7 @@ class UserCreateSerializer(serializers.Serializer):
     password = serializers.CharField(write_only=True)
     first_name = serializers.CharField(required=True)
     last_name = serializers.CharField(required=True)
-    practice_id = serializers.IntegerField()
+    practice_id = serializers.IntegerField(required=True)
 
 
     def __init__(self, *args, **kwargs):
