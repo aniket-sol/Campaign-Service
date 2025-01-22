@@ -36,15 +36,15 @@ class UserCreateSerializer(serializers.Serializer):
             raise serializers.ValidationError("Username already registered")
         return value
 
-    def validate_practice_id(self, value):
-        """
-        Validate that the practice_id exists in the database.
-        """
-        if value:
-            practice = self.db_session.query(Practice).filter_by(id=value).first()
-            if not practice:
-                raise serializers.ValidationError(f"Practice with ID {value} does not exist.")
-        return value
+    # def validate_practice_id(self, value):
+    #     """
+    #     Validate that the practice_id exists in the database.
+    #     """
+    #     if value:
+    #         practice = self.db_session.query(Practice).filter_by(id=value).first()
+    #         if not practice:
+    #             raise serializers.ValidationError(f"Practice with ID {value} does not exist.")
+    #     return value
 
 class UserLoginSerializer(serializers.Serializer):
     # username = serializers.CharField()

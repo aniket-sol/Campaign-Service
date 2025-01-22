@@ -55,7 +55,7 @@ class UserViewSet(ViewSet):
                     "session_token": session_data["session_token"],
                     "expires_at": session_data["expires_at"].isoformat(),
                     "username": session_data["username"],
-                    "roleType": session_data["role"],
+                    "is_super_admin": session_data["is_super_admin"],
                     "email": session_data["email"],
                     "name": session_data["first_name"] + " " + session_data["last_name"],
                 }, status=status.HTTP_200_OK)
