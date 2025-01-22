@@ -44,7 +44,7 @@ class UserCampaignSequence(Base):
     id = Column(BigInteger, primary_key=True)
     user_campaign_id = Column(BigInteger, ForeignKey('user_campaigns.id'), nullable=False)
     scheduled_date = Column(DateTime(timezone=True), nullable=False)
-    status = Column(SQLEnum(CampaignStatus), nullable=False),  # Updated to use Enum
+    status = Column(SQLEnum(CampaignStatus), nullable=False)  # Updated to use Enum
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.current_timestamp())
     created_by = Column(BigInteger, ForeignKey('users.id'), nullable=False)

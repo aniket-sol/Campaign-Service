@@ -1,4 +1,4 @@
-from .serializers import UserCreateSerializer, UserLoginSerializer, UserRequestCreateSerializer, UserRequestUpdateSerializer
+from .serializers import UserCreateSerializer, UserLoginSerializer, UserRequestCreateSerializer, UserRequestUpdateSerializer, UserRequestTableSerializer
 from .services import UserService, UserRequestService
 from utils import db_manager
 from rest_framework.viewsets import ViewSet
@@ -10,6 +10,7 @@ from passlib.context import CryptContext
 from .models import User, UserSession
 # from .permissions import IsAuthorized, IsAuthenticated
 from .auth import AuthService
+from .auth import authenticate, authorize
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 class UserViewSet(ViewSet):
@@ -61,7 +62,9 @@ class UserViewSet(ViewSet):
                         "is_super_admin": session_data["is_super_admin"],
                         "email": session_data["email"],
                         "name": session_data["first_name"] + " " + session_data["last_name"],
-                        "role": practice_role,
+                        "role": practice_role["role"] if practice_role else None,
+                        "practice_name": practice_role["practice_name"] if practice_role else None,
+                        "practice_id": practice_role["practice_id"] if practice_role else None,
                     }, status=status.HTTP_200_OK)
                 except AuthenticationFailed as e:
                     return Response({"error": str(e)}, status=status.HTTP_401_UNAUTHORIZED)
@@ -86,6 +89,25 @@ class UserRequestViewSet(ViewSet):
     """
     A ViewSet for managing user requests.
     """
+
+    @authenticate
+    @authorize([])
+    def list_active_entries(self, request):
+        """
+        List all active user request entries (where is_active is True).
+        """
+        with db_manager.get_db() as db_session:
+            active_entries = UserRequestService.get_active_entries(db_session)
+            if not active_entries:
+                return Response({"message": "No active entries found"}, status=status.HTTP_404_NOT_FOUND)
+
+            serialized_entries = UserRequestTableSerializer(active_entries, many=True)
+            return Response({
+                "message": "Active entries fetched successfully",
+                "entries": serialized_entries.data
+            }, status=status.HTTP_200_OK)
+
+    @authenticate
     def create(self, request):
         """
         Create a new entry in the UserRequestTable.
@@ -94,7 +116,7 @@ class UserRequestViewSet(ViewSet):
         if serializer.is_valid():
             with db_manager.get_db() as db_session:
                 try:
-                    new_entry = UserRequestService.create_entry(serializer.validated_data, db_session)
+                    new_entry = UserRequestService.create_entry(serializer.validated_data, db_session, request.user.id)
                     return Response({
                         "message": "Entry created successfully",
                         "entry": {
@@ -110,6 +132,8 @@ class UserRequestViewSet(ViewSet):
                     return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
+    @authenticate
+    @authorize([])
     def partial_update(self, request, pk=None):
         """
         Update the status and is_active fields of a UserRequestTable entry.
@@ -118,18 +142,17 @@ class UserRequestViewSet(ViewSet):
         """
         serializer = UserRequestUpdateSerializer(data=request.data)
         if serializer.is_valid():
-            user_id = serializer.validated_data["user_id"]
-            practice_id = serializer.validated_data["practice_id"]
-
             with db_manager.get_db() as db_session:
                 try:
                     updated_entry = UserRequestService.update_status_and_active(
-                        user_id=user_id,
-                        practice_id=practice_id,
+                        entry_id = pk,
+                        user_id=serializer.validated_data["user_id"],
+                        practice_id=serializer.validated_data["practice_id"],
                         status=serializer.validated_data["status"],
-                        is_active=serializer.validated_data["is_active"],
+                        role=serializer.validated_data["role"],
                         db_session=db_session
                     )
+
                     return Response({
                         "message": "Entry updated successfully",
                         "entry": {
@@ -146,3 +169,4 @@ class UserRequestViewSet(ViewSet):
                 except Exception as e:
                     return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+

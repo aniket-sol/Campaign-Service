@@ -30,8 +30,9 @@ def authorize(allowed_roles):
         @wraps(func)
         def wrapper(self, request, *args, **kwargs):
             try:
+                practice_id = getattr(request, 'practice_id', None)
                 # Ensure the user is authorized
-                AuthService.is_authorized(request.user.id, allowed_roles, request.practice_id)
+                AuthService.is_authorized(request.user.id, allowed_roles, practice_id=practice_id)
                 return func(self, request, *args, **kwargs)
             except Exception as e:
                 return Response({"error": str(e)}, status=status.HTTP_403_FORBIDDEN)

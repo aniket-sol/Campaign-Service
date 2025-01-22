@@ -69,8 +69,11 @@ class AuthService:
         Raises:
             AuthenticationFailed: If the token is invalid or expired.
         """
+        # print("reached")
+        # print(request.headers.get("Authorization"))
         if not session_token:
             if not request or not request.headers.get("Authorization"):
+                # print("Authorization header is missing")
                 raise AuthenticationFailed("Session token is missing")
             # Extract the token from the Authorization header
             auth_header = request.headers.get("Authorization")
@@ -78,7 +81,7 @@ class AuthService:
                 raise AuthenticationFailed("Invalid Authorization header format")
             session_token = auth_header[len("Bearer "):].strip()
 
-        # print(session_token)
+
         with db_manager.get_db() as db_session:
             user_session = db_session.query(UserSession).filter(
                 UserSession.session_id == session_token,

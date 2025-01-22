@@ -39,7 +39,7 @@ class UserService:
 
         return user
 
-    def get_user_practice_role(self, user_id: int) -> str:
+    def get_user_practice_role(self, user_id: int) -> dict:
         """
         Retrieve the user's role from the practice_user_roles table.
 
@@ -47,13 +47,19 @@ class UserService:
             user_id (int): ID of the user.
 
         Returns:
-            str or None: The role of the user in the specified practice, or None if not found.
+            dict or None: The role of the user in the specified practice, or None if not found.
         """
         practice_role = self.db_session.query(PracticeUserRole).filter(
             PracticeUserRole.user_id == user_id,
         ).first()
 
-        return practice_role.role.value if practice_role else None
+        if practice_role:
+            return {
+                "role": practice_role.role.value,
+                "practice_name": practice_role.practice.name,  # Assuming practice has a 'name' attribute
+                "practice_id": practice_role.practice.id,  # Assuming practice has an 'id' attribute
+            }
+        return None
 
     # def create_user_with_practice(self, validated_data: dict) -> User:
     #     """
