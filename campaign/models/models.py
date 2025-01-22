@@ -1,4 +1,4 @@
-from sqlalchemy import Column, String, DateTime, ForeignKey, BigInteger,Text, Enum as SQLEnum
+from sqlalchemy import Column,Date, Time,  String, DateTime, ForeignKey, BigInteger,Text, Enum as SQLEnum
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 import enum
@@ -44,7 +44,6 @@ class UserCampaignSequence(Base):
     id = Column(BigInteger, primary_key=True)
     user_campaign_id = Column(BigInteger, ForeignKey('user_campaigns.id'), nullable=False)
     scheduled_date = Column(DateTime(timezone=True), nullable=False)
-    schedule_time = Column(DateTime(timezone=True)),  # New column
     status = Column(SQLEnum(CampaignStatus), nullable=False),  # Updated to use Enum
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.current_timestamp())

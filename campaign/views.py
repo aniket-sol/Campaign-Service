@@ -28,6 +28,7 @@ class CampaignViewSet(viewsets.ViewSet):
     @action(detail=False, methods=['post'])
     def create(self, request):
         serializer = UserCampaignSerializer(data=request.data)
+        print(serializer)
         if serializer.is_valid():
             try:
                 campaign_data = CampaignService.create_campaign(serializer.validated_data, request.user)
