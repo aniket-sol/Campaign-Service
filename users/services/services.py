@@ -10,42 +10,48 @@ class UserService:
     def __init__(self, db_session: Session):
         self.db_session = db_session
 
-    def create_user_with_practice(self, validated_data: dict) -> User:
+    # def create_user_with_practice(self, validated_data: dict) -> User:
+    #     """
+    #     Handles user creation and practice-user role association.
+    #     """
+    #     username = validated_data["username"]
+    #     email = validated_data["email"]
+    #     password = validated_data["password"]
+    #     first_name = validated_data.get("first_name")
+    #     last_name = validated_data.get("last_name")
+    #     practice_id = validated_data.get("practice_id")
+    #
+    #     # Validate practice_id if provided
+    #     if practice_id:
+    #         practice = self.db_session.query(Practice).filter_by(id=practice_id).first()
+    #         if not practice:
+    #             raise ValueError(f"Practice with ID {practice_id} does not exist.")
+    #
+    #     # Create the user
+    #     user = self._create_user(
+    #         username=username,
+    #         email=email,
+    #         password=password,
+    #         first_name=first_name,
+    #         last_name=last_name,
+    #     )
+    #
+    #     # Associate user with practice if practice_id is provided
+    #     if practice_id:
+    #         self._associate_user_with_practice(user.id, practice_id)
+    #
+    #     return user
+
+    def create_user(self, validated_data: dict) -> User:
         """
-        Handles user creation and practice-user role association.
+        Creates and saves a new user in the database.
         """
         username = validated_data["username"]
         email = validated_data["email"]
         password = validated_data["password"]
         first_name = validated_data.get("first_name")
         last_name = validated_data.get("last_name")
-        practice_id = validated_data.get("practice_id")
 
-        # Validate practice_id if provided
-        if practice_id:
-            practice = self.db_session.query(Practice).filter_by(id=practice_id).first()
-            if not practice:
-                raise ValueError(f"Practice with ID {practice_id} does not exist.")
-
-        # Create the user
-        user = self._create_user(
-            username=username,
-            email=email,
-            password=password,
-            first_name=first_name,
-            last_name=last_name,
-        )
-
-        # Associate user with practice if practice_id is provided
-        if practice_id:
-            self._associate_user_with_practice(user.id, practice_id)
-
-        return user
-
-    def _create_user(self, username: str, email: str, password: str, first_name: str = None, last_name: str = None) -> User:
-        """
-        Creates and saves a new user in the database.
-        """
         hashed_password = pwd_context.hash(password)
 
         user = User(

@@ -22,7 +22,7 @@ class UserViewSet(ViewSet):
             if serializer.is_valid():
                 user_service = UserService(db_session)
                 try:
-                    user = user_service.create_user_with_practice(
+                    user = user_service.create_user(
                         validated_data=serializer.validated_data
                     )
                     return Response(
