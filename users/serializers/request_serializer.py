@@ -10,6 +10,9 @@ class UserRequestTableSerializer(serializers.Serializer):
     practice_id = serializers.IntegerField(required=True)
     role = serializers.ChoiceField(choices=[role.value for role in UserRoleType], required=True)
     created_at = serializers.DateTimeField(read_only=True)
+    user_first_name = serializers.CharField(read_only=True)
+    user_last_name = serializers.CharField(read_only=True)
+    practice_name = serializers.CharField(read_only=True)
 
 class UserRequestCreateSerializer(serializers.Serializer):
     """

@@ -100,8 +100,8 @@ class UserRequestViewSet(ViewSet):
             active_entries = UserRequestService.get_active_entries(db_session)
             if not active_entries:
                 return Response({"message": "No active entries found"}, status=status.HTTP_404_NOT_FOUND)
-
             serialized_entries = UserRequestTableSerializer(active_entries, many=True)
+            # print(serialized_entries.data)
             return Response({
                 "message": "Active entries fetched successfully",
                 "entries": serialized_entries.data
@@ -140,6 +140,7 @@ class UserRequestViewSet(ViewSet):
 
         This does not use pk but instead requires user_id and practice_id in the request body.
         """
+        print(request.data)
         serializer = UserRequestUpdateSerializer(data=request.data)
         if serializer.is_valid():
             with db_manager.get_db() as db_session:

@@ -1,7 +1,7 @@
 from sqlalchemy import false
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
-from users.models import UserRequestTable, UserRoleType, PracticeUserRole
+from users.models import UserRequestTable, UserRoleType, PracticeUserRole, User, Practice
 
 
 class UserRequestService:
@@ -41,8 +41,34 @@ class UserRequestService:
         Returns:
             list: A list of UserRequestTable entries where is_active is True.
         """
-        active_entries = db_session.query(UserRequestTable).filter(UserRequestTable.is_active == True).all()
-        return active_entries
+        # active_entries = db_session.query(UserRequestTable).filter(UserRequestTable.is_active == True).all()
+        active_entries = (
+            db_session.query(
+                UserRequestTable,
+                User.first_name,
+                User.last_name,
+                Practice.name.label("practice_name"),
+            )
+            .join(User, UserRequestTable.user_id == User.id)
+            .join(Practice, UserRequestTable.practice_id == Practice.id)
+            .filter(UserRequestTable.is_active == True)
+            .all()
+        )
+        serialized_data = [
+            {
+                "id": entry.UserRequestTable.id,
+                "user_id": entry.UserRequestTable.user_id,
+                "practice_id": entry.UserRequestTable.practice_id,
+                "role": entry.UserRequestTable.role.value,
+                "created_at": entry.UserRequestTable.created_at,
+                "user_first_name": entry.first_name,
+                "user_last_name": entry.last_name,
+                "practice_name": entry.practice_name,
+            }
+            for entry in active_entries
+        ]
+        return serialized_data
+        # return active_entries
 
 
     @staticmethod
