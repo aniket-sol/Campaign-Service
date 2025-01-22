@@ -1,5 +1,5 @@
-from .serializers import UserCreateSerializer, UserLoginSerializer
-from .services import UserService
+from .serializers import UserCreateSerializer, UserLoginSerializer, UserRequestCreateSerializer, UserRequestUpdateSerializer
+from .services import UserService, UserRequestService
 from utils import db_manager
 from rest_framework.viewsets import ViewSet
 from rest_framework.response import Response
@@ -43,25 +43,29 @@ class UserViewSet(ViewSet):
         """
                 Authenticate a user and provide a session token.
                 """
-        serializer = UserLoginSerializer(data=request.data)
-        if serializer.is_valid():
-            try:
-                session_data = AuthService.authenticate_user(
-                    email=serializer.validated_data["email"],
-                    password=serializer.validated_data["password"]
-                )
-                return Response({
-                    "message": "Login successful",
-                    "session_token": session_data["session_token"],
-                    "expires_at": session_data["expires_at"].isoformat(),
-                    "username": session_data["username"],
-                    "is_super_admin": session_data["is_super_admin"],
-                    "email": session_data["email"],
-                    "name": session_data["first_name"] + " " + session_data["last_name"],
-                }, status=status.HTTP_200_OK)
-            except AuthenticationFailed as e:
-                return Response({"error": str(e)}, status=status.HTTP_401_UNAUTHORIZED)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        with db_manager.get_db() as db_session:
+            serializer = UserLoginSerializer(data=request.data)
+            if serializer.is_valid():
+                try:
+                    session_data = AuthService.authenticate_user(
+                        email=serializer.validated_data["email"],
+                        password=serializer.validated_data["password"]
+                    )
+                    user_service = UserService(db_session)
+                    practice_role = user_service.get_user_practice_role(user_id=session_data["user_id"])
+                    return Response({
+                        "message": "Login successful",
+                        "session_token": session_data["session_token"],
+                        "expires_at": session_data["expires_at"].isoformat(),
+                        "username": session_data["username"],
+                        "is_super_admin": session_data["is_super_admin"],
+                        "email": session_data["email"],
+                        "name": session_data["first_name"] + " " + session_data["last_name"],
+                        "role": practice_role,
+                    }, status=status.HTTP_200_OK)
+                except AuthenticationFailed as e:
+                    return Response({"error": str(e)}, status=status.HTTP_401_UNAUTHORIZED)
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     def logout(self, request):
         try:
@@ -77,3 +81,68 @@ class UserViewSet(ViewSet):
         except AuthenticationFailed as e:
             return Response({"error": str(e)}, status=status.HTTP_401_UNAUTHORIZED)
 
+
+class UserRequestViewSet(ViewSet):
+    """
+    A ViewSet for managing user requests.
+    """
+    def create(self, request):
+        """
+        Create a new entry in the UserRequestTable.
+        """
+        serializer = UserRequestCreateSerializer(data=request.data)
+        if serializer.is_valid():
+            with db_manager.get_db() as db_session:
+                try:
+                    new_entry = UserRequestService.create_entry(serializer.validated_data, db_session)
+                    return Response({
+                        "message": "Entry created successfully",
+                        "entry": {
+                            "id": new_entry.id,
+                            "user_id": new_entry.user_id,
+                            "practice_id": new_entry.practice_id,
+                            "role": new_entry.role.value,
+                            "is_active": new_entry.is_active,
+                            "status": new_entry.status,
+                        }
+                    }, status=status.HTTP_201_CREATED)
+                except Exception as e:
+                    return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    def partial_update(self, request, pk=None):
+        """
+        Update the status and is_active fields of a UserRequestTable entry.
+
+        This does not use pk but instead requires user_id and practice_id in the request body.
+        """
+        serializer = UserRequestUpdateSerializer(data=request.data)
+        if serializer.is_valid():
+            user_id = serializer.validated_data["user_id"]
+            practice_id = serializer.validated_data["practice_id"]
+
+            with db_manager.get_db() as db_session:
+                try:
+                    updated_entry = UserRequestService.update_status_and_active(
+                        user_id=user_id,
+                        practice_id=practice_id,
+                        status=serializer.validated_data["status"],
+                        is_active=serializer.validated_data["is_active"],
+                        db_session=db_session
+                    )
+                    return Response({
+                        "message": "Entry updated successfully",
+                        "entry": {
+                            "id": updated_entry.id,
+                            "user_id": updated_entry.user_id,
+                            "practice_id": updated_entry.practice_id,
+                            "role": updated_entry.role.value,
+                            "is_active": updated_entry.is_active,
+                            "status": updated_entry.status,
+                        }
+                    }, status=status.HTTP_200_OK)
+                except ValueError as e:
+                    return Response({"error": str(e)}, status=status.HTTP_404_NOT_FOUND)
+                except Exception as e:
+                    return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
