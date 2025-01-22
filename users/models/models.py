@@ -29,7 +29,8 @@ class User(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
     last_login = Column(DateTime(timezone=True), nullable=True)
-    role = Column(SQLAEnum(UserRoleType), nullable=False, default=UserRoleType.practice_user)
+    is_super_admin = Column(Boolean, default=False)  # New column
+    # role = Column(SQLAEnum(UserRoleType), nullable=False, default=UserRoleType.practice_user) deleted
 
     # Relationships
     practice_roles = relationship("PracticeUserRole", back_populates="user", cascade="all, delete")
@@ -57,6 +58,7 @@ class PracticeUserRole(Base):
     id = Column(BigInteger, primary_key=True)
     user_id = Column(BigInteger, ForeignKey('users.id'), nullable=False)
     practice_id = Column(BigInteger, ForeignKey('practices.id'), nullable=False)
+    role = Column(SQLAEnum(UserRoleType), nullable=False, default=UserRoleType.practice_user)  # Role column added
 
     # Relationships
     practice = relationship("Practice", back_populates="practice_users")
