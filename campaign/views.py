@@ -97,15 +97,47 @@ class CampaignSequenceViewSet(viewsets.ViewSet):
     @action(detail=False, methods=['post'])
     def create(self, request):
         print(request.data)
-        serializer = UserCampaignSequenceSerializer(data=request.data)
-        if serializer.is_valid():
-            try:
-                campaign_sequence_data = CampaignSequenceService.create_campaign_sequence(serializer.validated_data, request.user)
-                return Response({'message': 'Campaign sequence created successfully', 'campaign_sequence': campaign_sequence_data},
-                                 status=status.HTTP_201_CREATED)
-            except Exception as e:
-                return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        # Extract practice_ids and roles from the request data
+        practice_ids = request.data.get('practices', [])
+        roles = request.data.get('roles', [])
+        user_campaign_id = request.data.get('user_campaign_id')
+
+        # Validate the input
+        if not practice_ids or not roles:
+            return Response({'error': 'Both practice_ids and roles are required.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            # Call the service to create the campaign targets and sequence
+            campaign_sequence_data = CampaignSequenceService.create_campaign_with_targets(
+                user_campaign_id, practice_ids, roles, request.data, request.user
+            )
+
+            return Response({
+                'message': 'Campaign sequence and targets created successfully',
+                'campaign_sequence': campaign_sequence_data
+            }, status=status.HTTP_201_CREATED)
+
+        except Exception as e:
+            return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+    # def create(self, request):
+    #     # print(request.data)
+    #     practice_ids = request.data.get('practice_ids', [])
+    #     roles = request.data.get('roles', [])
+    #     user_campaign_id = request.data.get('user_campaign_id')
+    #
+    #     if not practice_ids or not roles:
+    #         return Response({'error': 'Both practice_ids and roles are required.'}, status=status.HTTP_400_BAD_REQUEST)
+    #
+    #     serializer = UserCampaignSequenceSerializer(data=request.data)
+    #     if serializer.is_valid():
+    #         try:
+    #             campaign_sequence_data = CampaignSequenceService.create_campaign_sequence(serializer.validated_data, request.user)
+    #             return Response({'message': 'Campaign sequence created successfully', 'campaign_sequence': campaign_sequence_data},
+    #                              status=status.HTTP_201_CREATED)
+    #         except Exception as e:
+    #             return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+    #     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     @authenticate
     @authorize([UserRoleType.super_admin, UserRoleType.admin])

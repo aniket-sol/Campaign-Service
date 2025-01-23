@@ -22,4 +22,6 @@ urlpatterns = [
     path('user/', include('users.urls')),  # Include user URLs
     path('practice/', include('practice.urls')),
     path('campaign/', include('campaign.urls')),
+
+    path('message/', include('message.urls')),
 ]
