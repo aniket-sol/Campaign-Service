@@ -15,7 +15,7 @@ class CampaignViewSet(viewsets.ViewSet):
     """
 
     @authenticate
-    @authorize([UserRoleType.admin, UserRoleType.super_admin])
+    @authorize([UserRoleType.admin])
     def list(self, request):
         try:
             campaigns = CampaignService.list_campaigns()
@@ -71,8 +71,10 @@ class CampaignViewSet(viewsets.ViewSet):
             CampaignService.delete_campaign(pk)
             return Response({'message': 'Campaign soft deleted successfully'}, status=status.HTTP_204_NO_CONTENT)
         except NoResultFound as e:
+            print(str(e))
             return Response({'error': str(e)}, status=status.HTTP_404_NOT_FOUND)
         except Exception as e:
+            print(str(e))
             return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
 

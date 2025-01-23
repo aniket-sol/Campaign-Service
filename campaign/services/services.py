@@ -48,8 +48,15 @@ class CampaignService:
     @staticmethod
     def delete_campaign(campaign_id):
         with db_manager.get_db() as db_session:
+            # Query the campaign
             campaign = db_session.query(UserCampaign).filter(UserCampaign.id == campaign_id).first()
+
+            # If the campaign is not found, raise an error
             if not campaign:
                 raise NoResultFound("Campaign not found")
-            campaign.is_active = False
+
+            # Delete the campaign
+            db_session.delete(campaign)
+
+            # Commit the transaction to permanently delete the campaign
             db_session.commit()

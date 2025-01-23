@@ -69,11 +69,11 @@ class AuthService:
         Raises:
             AuthenticationFailed: If the token is invalid or expired.
         """
-        # print("reached")
+        # print("reached authentication service")
         # print(request.headers.get("Authorization"))
         if not session_token:
             if not request or not request.headers.get("Authorization"):
-                # print("Authorization header is missing")
+                print("Authorization header is missing")
                 raise AuthenticationFailed("Session token is missing")
             # Extract the token from the Authorization header
             auth_header = request.headers.get("Authorization")
@@ -135,6 +135,7 @@ class AuthService:
         Raises:
             PermissionDenied: If the user is not authorized.
         """
+        # print("reached authorization")
         with db_manager.get_db() as db_session:
             # Retrieve the user from the database
             user = db_session.query(User).filter(User.id == user_id).first()
