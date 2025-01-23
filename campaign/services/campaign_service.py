@@ -10,7 +10,7 @@ class CampaignSequenceService:
         """
         Create a new campaign sequence.
         """
-        print(validated_data)
+        # print(validated_data)
         with db_manager.get_db() as db_session:
             campaign_sequence = UserCampaignSequence(
                 user_campaign_id=validated_data['user_campaign_id'],

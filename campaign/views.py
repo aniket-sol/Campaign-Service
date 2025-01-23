@@ -28,7 +28,7 @@ class CampaignViewSet(viewsets.ViewSet):
     @action(detail=False, methods=['post'])
     def create(self, request):
         serializer = UserCampaignSerializer(data=request.data)
-        print(serializer)
+        # print(serializer)
         if serializer.is_valid():
             try:
                 campaign_data = CampaignService.create_campaign(serializer.validated_data, request.user)
@@ -84,7 +84,7 @@ class CampaignSequenceViewSet(viewsets.ViewSet):
     """
 
     @authenticate
-    @authorize([UserRoleType.admin, UserRoleType.super_admin])
+    @authorize([UserRoleType.admin])
     def list(self, request):
         try:
             campaign_sequences = CampaignSequenceService.list_campaign_sequences()
@@ -96,6 +96,7 @@ class CampaignSequenceViewSet(viewsets.ViewSet):
     @authorize([UserRoleType.super_admin, UserRoleType.admin])
     @action(detail=False, methods=['post'])
     def create(self, request):
+        print(request.data)
         serializer = UserCampaignSequenceSerializer(data=request.data)
         if serializer.is_valid():
             try:
