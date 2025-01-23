@@ -2,7 +2,7 @@ from datetime import datetime, timedelta
 from passlib.context import CryptContext
 from rest_framework.exceptions import AuthenticationFailed, PermissionDenied
 import uuid
-from users.models import User, UserSession
+from users.models import User, UserSession, PracticeUserRole
 from utils import db_manager
 import pytz
 
@@ -49,8 +49,10 @@ class AuthService:
                 "session_token": session_token,
                 "expires_at": expires_at,
                 "username": user.username,
-                "role": user.role,
+                "is_super_admin": user.is_super_admin,
                 "email": user.email,
+                "first_name": user.first_name,
+                "last_name": user.last_name,
             }
 
     @staticmethod
@@ -67,8 +69,11 @@ class AuthService:
         Raises:
             AuthenticationFailed: If the token is invalid or expired.
         """
+        # print("reached authentication service")
+        print(request.headers)
         if not session_token:
             if not request or not request.headers.get("Authorization"):
+                print("Authorization header is missing")
                 raise AuthenticationFailed("Session token is missing")
             # Extract the token from the Authorization header
             auth_header = request.headers.get("Authorization")
@@ -76,7 +81,7 @@ class AuthService:
                 raise AuthenticationFailed("Invalid Authorization header format")
             session_token = auth_header[len("Bearer "):].strip()
 
-        # print(session_token)
+
         with db_manager.get_db() as db_session:
             user_session = db_session.query(UserSession).filter(
                 UserSession.session_id == session_token,
@@ -93,7 +98,6 @@ class AuthService:
 
             if request is not None:
                 request.session_token = session_token
-
             return user
 
     @staticmethod
@@ -119,14 +123,56 @@ class AuthService:
             db_session.commit()
 
     @staticmethod
-    def is_authorized(user_id: int, allowed_roles: list) -> None:
-        # Retrieve the user from the database
+    def is_authorized(user_id: int, allowed_roles: list, practice_id: int = None ) -> None:
+        """
+        Checks if the user is authorized to perform an action.
+
+        Parameters:
+            user_id (int): ID of the user.
+            practice_id (int): ID of the practice.
+            allowed_roles (list): List of allowed roles.
+
+        Raises:
+            PermissionDenied: If the user is not authorized.
+        """
+        # print("reached authorization")
         with db_manager.get_db() as db_session:
+            # Retrieve the user from the database
             user = db_session.query(User).filter(User.id == user_id).first()
 
             if not user:
                 raise PermissionDenied("User not found")
 
-            if user.role.value not in allowed_roles:
-                # print("User is not authorized")
+            # Allow if the user is a super admin
+            if user.is_super_admin:
+                return
+                # If practice_id is None, and the user is not a super admin, deny access
+            if practice_id is None:
+                raise PermissionDenied("Practice ID is required for non-super admin users")
+
+            # Retrieve the user's practice role
+            practice_role = db_session.query(PracticeUserRole).filter(
+                PracticeUserRole.user_id == user_id,
+                PracticeUserRole.practice_id == practice_id
+            ).first()
+
+            if not practice_role:
+                raise PermissionDenied("User does not have a role for this practice")
+
+            # Check if the user's role in the practice is allowed
+            if practice_role.role.value not in allowed_roles:
                 raise PermissionDenied("You do not have permission to perform this action")
+
+    # @staticmethod
+    # def is_authorized(user_id: int, allowed_roles: list) -> None:
+    #     # print(user_id, allowed_roles)
+    #     # Retrieve the user from the database
+    #     with db_manager.get_db() as db_session:
+    #         user = db_session.query(User).filter(User.id == user_id).first()
+    #
+    #         if not user:
+    #             raise PermissionDenied("User not found")
+    #
+    #         if user.role.value not in allowed_roles:
+    #             # print("User is not authorized")
+    #             raise PermissionDenied("You do not have permission to perform this action")

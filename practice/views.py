@@ -23,6 +23,7 @@ class PracticeViewSet(viewsets.ViewSet):
     @authorize([UserRoleType.super_admin])
     def create(self, request):
         try:
+            print(request.data)
             data = request.data
             with db_manager.get_db() as db_session:
                 practice = Practice(
