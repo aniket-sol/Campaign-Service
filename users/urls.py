@@ -8,5 +8,5 @@ urlpatterns = [
     path('login/', UserViewSet.as_view({'post': 'login'})),
     path('logout/', UserViewSet.as_view({'post': 'logout'})),
     path('request/', UserRequestViewSet.as_view({'get': 'list_active_entries', 'post': 'create'})),
-    path('request/<int:pk>/', UserRequestViewSet.as_view({'patch': 'partial_update'})),
+    path('request/<int:pk>/', UserRequestViewSet.as_view({'get': 'list_active_entries_practice_wise', 'patch': 'partial_update'})),
 ]
