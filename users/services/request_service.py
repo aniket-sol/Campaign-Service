@@ -91,7 +91,7 @@ class UserRequestService:
             )
             .join(User, UserRequestTable.user_id == User.id)
             .join(Practice, UserRequestTable.practice_id == Practice.id)
-            .filter(UserRequestTable.is_active == True, pk == Practice.id)
+            .filter(UserRequestTable.is_active == True, pk == Practice.id, UserRequestTable.role == UserRoleType.practice_user)
             .all()
         )
         serialized_data = [

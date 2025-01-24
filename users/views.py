@@ -151,7 +151,7 @@ class UserRequestViewSet(ViewSet):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     @authenticate
-    @authorize([])
+    @authorize([UserRoleType.admin])
     def partial_update(self, request, pk=None):
         """
         Update the status and is_active fields of a UserRequestTable entry.
