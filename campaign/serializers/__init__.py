@@ -1,2 +1,0 @@
-from .serializers import UserCampaignSerializer
-from .campaign_sequence import UserCampaignSequenceSerializer
