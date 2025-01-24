@@ -4,38 +4,44 @@ from rest_framework import status
 from rest_framework.exceptions import PermissionDenied, AuthenticationFailed
 
 from users.auth import authenticate, authorize
-from users.models import Practice, UserRoleType
 from .serializers import PracticeSerializer
-from utils import db_manager
+from .services import PracticeService
 
 
 class PracticeViewSet(viewsets.ViewSet):
 
-    # @authenticate
+    @authenticate
     def list(self, request):
-        with db_manager.get_db() as db_session:
-            practices = db_session.query(Practice).all()
+        try:
+            practices, error = PracticeService.get_practices()
+
+            if error:
+                return Response({"error": error}, status=status.HTTP_400_BAD_REQUEST)
+
+            # Serialize the practice data
             serializer = PracticeSerializer(practices, many=True)
             return Response(serializer.data)
 
+        except AuthenticationFailed as e:
+            return Response({"error": str(e)}, status=status.HTTP_401_UNAUTHORIZED)
+        except Exception as e:
+            return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
 
     @authenticate
-    @authorize([UserRoleType.super_admin])
+    @authorize([])
     def create(self, request):
         try:
-            print(request.data)
             data = request.data
-            with db_manager.get_db() as db_session:
-                practice = Practice(
-                    name=data['name'],
-                    is_active=data.get('is_active', True)
-                )
-                db_session.add(practice)
-                db_session.commit()
-                return Response(
-                    {"message": "Practice created successfully", "practice_id": practice.id},
-                    status=status.HTTP_201_CREATED
-                )
+            practice, error = PracticeService.create_practice(data)
+
+            if error:
+                return Response({"error": error}, status=status.HTTP_400_BAD_REQUEST)
+
+            return Response(
+                {"message": "Practice created successfully", "practice_id": practice.id},
+                status=status.HTTP_201_CREATED
+            )
         except AuthenticationFailed as e:
             return Response({"error": str(e)}, status=status.HTTP_401_UNAUTHORIZED)
         except PermissionDenied as e:
@@ -43,58 +49,66 @@ class PracticeViewSet(viewsets.ViewSet):
         except Exception as e:
             return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
-
     @authenticate
     def retrieve(self, request, pk=None):
         """
         Retrieve a specific practice (accessible for authenticated users).
         """
-        with db_manager.get_db() as db_session:
-            practice = db_session.query(Practice).filter(Practice.id == pk).first()
+        try:
+            practice, error = PracticeService.get_practice_by_id(pk)
 
-            if not practice:
-                return Response({"error": "Practice not found"}, status=status.HTTP_404_NOT_FOUND)
+            if error:
+                return Response({"error": error}, status=status.HTTP_404_NOT_FOUND)
 
+            # Serialize the practice data
             serializer = PracticeSerializer(practice)
             return Response(serializer.data)
 
+        except AuthenticationFailed as e:
+            return Response({"error": str(e)}, status=status.HTTP_401_UNAUTHORIZED)
+        except Exception as e:
+            return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
     @authenticate
-    @authorize([UserRoleType.super_admin])
+    @authorize([])
     def update(self, request, pk=None):
         """
         Update a specific practice (accessible for admins).
         """
-        data = request.data
-        with db_manager.get_db() as db_session:
-            practice = db_session.query(Practice).filter(Practice.id == pk).first()
+        try:
+            data = request.data
+            practice, error = PracticeService.update_practice(pk, data)
 
-            if not practice:
-                return Response({"error": "Practice not found"}, status=status.HTTP_404_NOT_FOUND)
-
-            # Update the practice fields
-            practice.name = data.get('name', practice.name)
-            practice.is_active = data.get('is_active', practice.is_active)
-            db_session.commit()
+            if error:
+                return Response({"error": error}, status=status.HTTP_404_NOT_FOUND)
 
             return Response({"message": "Practice updated successfully"})
 
+        except AuthenticationFailed as e:
+            return Response({"error": str(e)}, status=status.HTTP_401_UNAUTHORIZED)
+        except PermissionDenied as e:
+            return Response({"error": str(e)}, status=status.HTTP_403_FORBIDDEN)
+        except Exception as e:
+            return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
     @authenticate
-    @authorize([UserRoleType.super_admin])
+    @authorize([])
     def destroy(self, request, pk=None):
         """
         Delete a specific practice (accessible for admins).
         """
-        print(pk)
+        try:
+            practice, error = PracticeService.soft_delete_practice(pk)
 
-        with db_manager.get_db() as db_session:
-            practice = db_session.query(Practice).filter(Practice.id == pk).first()
-
-            if not practice:
-                return Response({"error": "Practice not found"}, status=status.HTTP_404_NOT_FOUND)
-
-            # Perform soft delete by setting is_active to False
-            practice.is_active = False
-            db_session.commit()
+            if error:
+                return Response({"error": error}, status=status.HTTP_404_NOT_FOUND)
 
             return Response({"message": "Practice soft deleted successfully"}, status=status.HTTP_204_NO_CONTENT)
+
+        except AuthenticationFailed as e:
+            return Response({"error": str(e)}, status=status.HTTP_401_UNAUTHORIZED)
+        except PermissionDenied as e:
+            return Response({"error": str(e)}, status=status.HTTP_403_FORBIDDEN)
+        except Exception as e:
+            return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
