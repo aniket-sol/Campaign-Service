@@ -13,7 +13,7 @@ def authenticate(func):
     @wraps(func)
     def wrapper(self, request, *args, **kwargs):
         try:
-            print(request.headers)
+            # print(request.headers)
             # Validate session and attach user to request
             request.user = AuthService.validate_session(request=request)
             return func(self, request, *args, **kwargs)

@@ -45,7 +45,7 @@ class MessageService:
         """
         # Find the message to update
         message = db_session.query(Message).filter(Message.id == message_id).first()
-        print(message)
+        # print(message)
         if not message:
             print("not found")
             raise ValueError("Message not found")
@@ -53,7 +53,7 @@ class MessageService:
         if message.recipient_id == user_id:
             message.status = "READ"
 
-        print(db_session.is_active)
+        # print(db_session.is_active)
         db_session.commit()
         return message
 

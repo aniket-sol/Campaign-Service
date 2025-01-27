@@ -81,7 +81,7 @@ class UserRequestService:
             list: A list of UserRequestTable entries where is_active is True.
         """
         # active_entries = db_session.query(UserRequestTable).filter(UserRequestTable.is_active == True).all()
-        print("In get_active_entries_practice_wise")
+        # print("In get_active_entries_practice_wise")
         active_entries = (
             db_session.query(
                 UserRequestTable,

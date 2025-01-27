@@ -96,7 +96,7 @@ class CampaignSequenceViewSet(viewsets.ViewSet):
     @authorize([UserRoleType.super_admin, UserRoleType.admin])
     @action(detail=False, methods=['post'])
     def create(self, request):
-        print(request.data)
+        # print(request.data)
         # Extract practice_ids and roles from the request data
         practice_ids = request.data.get('practices', [])
         roles = request.data.get('roles', [])

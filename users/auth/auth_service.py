@@ -70,10 +70,10 @@ class AuthService:
             AuthenticationFailed: If the token is invalid or expired.
         """
         # print("reached authentication service")
-        print(request.headers)
+        # print(request.headers)
         if not session_token:
             if not request or not request.headers.get("Authorization"):
-                print("Authorization header is missing")
+                # print("Authorization header is missing")
                 raise AuthenticationFailed("Session token is missing")
             # Extract the token from the Authorization header
             auth_header = request.headers.get("Authorization")

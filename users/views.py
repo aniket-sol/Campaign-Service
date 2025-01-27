@@ -113,7 +113,7 @@ class UserRequestViewSet(ViewSet):
         """
         List all active user request entries (where is_active is True).
         """
-        print("Got the request")
+        # print("Got the request")
         with db_manager.get_db() as db_session:
             active_entries = UserRequestService.get_active_entries_practice_wise(db_session, pk)
             if not active_entries:
@@ -158,7 +158,7 @@ class UserRequestViewSet(ViewSet):
 
         This does not use pk but instead requires user_id and practice_id in the request body.
         """
-        print(request.data)
+        # print(request.data)
         serializer = UserRequestUpdateSerializer(data=request.data)
         if serializer.is_valid():
             with db_manager.get_db() as db_session:
