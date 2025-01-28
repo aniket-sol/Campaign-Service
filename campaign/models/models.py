@@ -28,6 +28,7 @@ class UserCampaign(Base):
     title = Column(String, nullable=False, unique=True)
     description = Column(String)
     status = Column(String, nullable=False)
+    type = Column(SQLEnum("Default", "Custom", name="campaign_type"), nullable=False, default="Default")  # Added "type" field
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.current_timestamp())
     created_by = Column(BigInteger, ForeignKey('users.id'), nullable=False)
@@ -66,11 +67,12 @@ class Message(Base):
     read_at = Column(DateTime(timezone=True))
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.current_timestamp())
+    practice_id = Column(BigInteger, ForeignKey('practices.id'), nullable=False, default=2)  # Added practice_id reference
 
     # Relationships
     campaign = relationship("UserCampaign", back_populates="messages")
     recipient = relationship("User", back_populates="received_messages")
-
+    practice = relationship("Practice", back_populates="practices_messages")  # Added practice relationship
 
 class CampaignTarget(Base):
     __tablename__ = 'campaign_target'
