@@ -72,7 +72,7 @@ class Message(Base):
     # Relationships
     campaign = relationship("UserCampaign", back_populates="messages")
     recipient = relationship("User", back_populates="received_messages")
-    practice = relationship("Practice", back_populates="practices_messages")  # Added practice relationship
+    # practice = relationship("Practice", back_populates="practices_messages")  # Added practice relationship
 
 class CampaignTarget(Base):
     __tablename__ = 'campaign_target'

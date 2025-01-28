@@ -24,11 +24,21 @@ class CampaignViewSet(viewsets.ViewSet):
             return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
     @authenticate
-    @authorize([UserRoleType.super_admin])
+    @authorize([UserRoleType.admin])
+    def list_admin_campaigns(self, request):
+        try:
+            campaigns = CampaignService.list_admin_campaigns(request.user)
+            return Response({'campaigns': campaigns}, status=status.HTTP_200_OK)
+        except Exception as e:
+            return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+
+    @authenticate
+    @authorize([UserRoleType.admin])
     @action(detail=False, methods=['post'])
     def create(self, request):
         serializer = UserCampaignSerializer(data=request.data)
-        # print(serializer)
+        print(serializer)
         if serializer.is_valid():
             try:
                 campaign_data = CampaignService.create_campaign(serializer.validated_data, request.user)
@@ -39,7 +49,7 @@ class CampaignViewSet(viewsets.ViewSet):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     @authenticate
-    @authorize([UserRoleType.super_admin, UserRoleType.admin])
+    @authorize([UserRoleType.admin])
     @action(detail=True, methods=['get'])
     def retrieve(self, request, pk=None):
         try:
@@ -51,11 +61,11 @@ class CampaignViewSet(viewsets.ViewSet):
             return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
     @authenticate
-    @authorize([UserRoleType.super_admin])
+    @authorize([UserRoleType.admin])
     @action(detail=True, methods=['patch'])
     def update(self, request, pk=None):
         try:
-            campaign_data = CampaignService.update_campaign(pk, request.data)
+            campaign_data = CampaignService.update_campaign(pk, request.data, request.user)
             return Response({'message': 'Campaign updated successfully', 'campaign': campaign_data},
                             status=status.HTTP_200_OK)
         except NoResultFound as e:
@@ -64,11 +74,11 @@ class CampaignViewSet(viewsets.ViewSet):
             return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
     @authenticate
-    @authorize([UserRoleType.super_admin])
+    @authorize([UserRoleType.admin])
     @action(detail=True, methods=['delete'])
     def destroy(self, request, pk=None):
         try:
-            CampaignService.delete_campaign(pk)
+            CampaignService.delete_campaign(pk, request.user)
             return Response({'message': 'Campaign soft deleted successfully'}, status=status.HTTP_204_NO_CONTENT)
         except NoResultFound as e:
             print(str(e))

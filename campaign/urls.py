@@ -5,7 +5,8 @@ urlpatterns = [
     path('', CampaignViewSet.as_view({'get': 'list', 'post': 'create'})),  # for listing and creating campaigns
     path('<int:pk>/', CampaignViewSet.as_view({'get': 'retrieve', 'patch': 'update', 'delete': 'destroy'})),
 
+    path('practice/', CampaignViewSet.as_view({'get': 'list_admin_campaigns'})),
+
     path('sequence', CampaignSequenceViewSet.as_view({'get': 'list', 'post': 'create'})),  # for listing and creating campaigns
     path('sequence/<int:pk>/', CampaignSequenceViewSet.as_view({'get': 'retrieve', 'patch': 'update', 'delete': 'destroy'})),
-
 ]
