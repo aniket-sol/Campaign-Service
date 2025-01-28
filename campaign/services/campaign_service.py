@@ -47,10 +47,12 @@ class CampaignSequenceService:
             campaign_sequence = UserCampaignSequence(
                 user_campaign_id=user_campaign_id,
                 scheduled_date=campaign_data['scheduled_date'],
-                status='DRAFT',  # Default status, could be passed from request if needed
+                status='SCHEDULED',  # Default status, could be passed from request if needed
                 created_by=user.id
             )
             print("campaign_sequence", campaign_sequence)
+            if user_campaign.type == "Custom":
+                user_campaign.status = "SENT"
             db_session.add(campaign_sequence)
             db_session.commit()
 

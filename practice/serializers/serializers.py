@@ -24,3 +24,8 @@ class PracticeSerializer(serializers.Serializer):
         db_session.commit()
         db_session.refresh(instance)
         return instance
+
+class PracticeDetailSerializer(serializers.Serializer):
+    practice_id = serializers.IntegerField(read_only=True)
+    practice_name = serializers.CharField(max_length=255)
+    role = serializers.CharField(max_length=255)

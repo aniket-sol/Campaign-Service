@@ -62,9 +62,9 @@ class UserViewSet(ViewSet):
                         "is_super_admin": session_data["is_super_admin"],
                         "email": session_data["email"],
                         "name": session_data["first_name"] + " " + session_data["last_name"],
-                        "role": practice_role["role"] if practice_role else None,
-                        "practice_name": practice_role["practice_name"] if practice_role else None,
-                        "practice_id": practice_role["practice_id"] if practice_role else None,
+                        # "role": practice_role["role"] if practice_role else None,
+                        # "practice_name": practice_role["practice_name"] if practice_role else None,
+                        # "practice_id": practice_role["practice_id"] if practice_role else None,
                     }, status=status.HTTP_200_OK)
                 except AuthenticationFailed as e:
                     return Response({"error": str(e)}, status=status.HTTP_401_UNAUTHORIZED)

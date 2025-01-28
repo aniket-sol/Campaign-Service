@@ -1,5 +1,7 @@
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
+
+from users.models import PracticeUserRole
 from utils import db_manager
 from centralised_models import Practice
 
@@ -32,6 +34,36 @@ class PracticeService:
             with db_manager.get_db() as db_session:
                 practices = db_session.query(Practice).all()
                 return practices, None  # Return the list of practices and no error
+        except Exception as e:
+            return None, str(e)
+
+    @staticmethod
+    def get_enrolled_practices(user):
+        try:
+            with db_manager.get_db() as db_session:
+                # Query to join PracticeUserRole with Practice table
+                practices = db_session.query(
+                    PracticeUserRole.practice_id,
+                    Practice.name.label('practice_name'),  # Assuming 'name' is the column in the 'Practice' table
+                    PracticeUserRole.role
+                ).join(
+                    Practice, PracticeUserRole.practice_id == Practice.id
+                    # Join condition between PracticeUserRole and Practice
+                ).filter(
+                    PracticeUserRole.user_id == user.id  # Filter by user_id
+                ).all()
+
+                practices = [
+                    {
+                        'practice_id': practice.practice_id,
+                        'practice_name': practice.practice_name,
+                        'role': practice.role.name  # Get the string representation of the Enum value
+                    }
+                    for practice in practices
+                ]
+
+                # Return list of practices (id, name) and None as error
+                return practices, None
         except Exception as e:
             return None, str(e)
 

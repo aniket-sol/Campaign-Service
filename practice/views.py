@@ -5,6 +5,7 @@ from rest_framework.exceptions import PermissionDenied, AuthenticationFailed
 
 from users.auth import authenticate, authorize
 from .serializers import PracticeSerializer
+from .serializers.serializers import PracticeDetailSerializer
 from .services import PracticeService
 
 
@@ -27,6 +28,22 @@ class PracticeViewSet(viewsets.ViewSet):
         except Exception as e:
             return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
+    @authenticate
+    def list_enrolled_practices(self, request):
+        try:
+            practices, error = PracticeService.get_enrolled_practices(request.user)
+
+            if error:
+                return Response({"error": error}, status=status.HTTP_400_BAD_REQUEST)
+
+            # Serialize the practice data
+            serializer = PracticeDetailSerializer(practices, many=True)
+            return Response(serializer.data)
+            # return Response(practices)
+        except AuthenticationFailed as e:
+            return Response({"error": str(e)}, status=status.HTTP_401_UNAUTHORIZED)
+        except Exception as e:
+            return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
     @authenticate
     @authorize([])
