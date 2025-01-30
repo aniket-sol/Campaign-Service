@@ -37,7 +37,6 @@ class UserCampaign(Base):
     user = relationship("User", back_populates="created_campaigns")
     sequences = relationship("UserCampaignSequence", back_populates="user_campaign", cascade="all, delete")
     messages = relationship("Message", back_populates="campaign", cascade="all, delete")
-    targets = relationship("CampaignTarget", back_populates="campaign", cascade="all, delete")
 
 class UserCampaignSequence(Base):
     __tablename__ = 'user_campaign_sequences'
@@ -52,6 +51,7 @@ class UserCampaignSequence(Base):
 
 
     # Relationships
+    targets = relationship("CampaignTarget", back_populates="campaign_sequence", cascade="all, delete")
     user_campaign = relationship("UserCampaign", back_populates="sequences")
     created_by_user = relationship("User", back_populates="created_sequences")
 
