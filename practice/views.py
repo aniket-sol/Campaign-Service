@@ -50,20 +50,24 @@ class PracticeViewSet(viewsets.ViewSet):
     def create(self, request):
         try:
             data = request.data
-            practice, error = PracticeService.create_practice(data)
+            practice_data, error = PracticeService.create_practice(data)
 
             if error:
+                print("error", error)
                 return Response({"error": error}, status=status.HTTP_400_BAD_REQUEST)
 
             return Response(
-                {"message": "Practice created successfully", "practice_id": practice.id},
+                {"message": "Practice created successfully", "practice_id": practice_data["id"]},
                 status=status.HTTP_201_CREATED
             )
         except AuthenticationFailed as e:
+            print("Authentication Failed", str(e))
             return Response({"error": str(e)}, status=status.HTTP_401_UNAUTHORIZED)
         except PermissionDenied as e:
+            print("PermissionDenied", str(e))
             return Response({"error": str(e)}, status=status.HTTP_403_FORBIDDEN)
         except Exception as e:
+            print("Exception this", str(e))
             return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
     @authenticate

@@ -22,10 +22,13 @@ class PracticeService:
                 )
                 db_session.add(practice)
                 db_session.commit()
-                return practice, None  # Return the created practice and no error
+                db_session.refresh(practice)
+                return {"id": practice.id}, None  # Return the created practice and no error
         except IntegrityError as e:
+            print("Integrity error",str(e))
             return None, f"Integrity Error: {str(e)}"
         except Exception as e:
+            print("Exception", str(e))
             return None, str(e)
 
     @staticmethod
