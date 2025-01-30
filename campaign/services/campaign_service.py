@@ -1,9 +1,9 @@
-from centralised_models import UserCampaignSequence, CampaignStatus, UserCampaign, CampaignTarget, PracticeUserRole, Message
-from utils import db_manager
+from datetime import datetime
+from centralised_models import UserCampaignSequence, CampaignStatus, UserCampaign, CampaignTarget
 from ..serializers import UserCampaignSequenceSerializer
-from message.services import MessageService
 from sqlalchemy.orm.exc import NoResultFound
 from utils import db_manager
+from tasks import send_campaign_messages
 
 class CampaignSequenceService:
     @staticmethod
@@ -57,8 +57,25 @@ class CampaignSequenceService:
                 # Commit all changes to the session (this is where the changes are saved to the DB)
                 db_session.commit()
 
+                # Calculate the time delay based on scheduled_date
+                scheduled_datetime = campaign_data['scheduled_date']
+                scheduled_datetime = datetime.strptime(campaign_data['scheduled_date'], "%Y-%m-%dT%H:%M")
+                current_time = datetime.now()
+
+                # If the scheduled time is in the future, schedule the message sending task
+                if scheduled_datetime > current_time:
+                    delay = (scheduled_datetime - current_time).total_seconds()
+                    send_campaign_messages.apply_async(
+                        args=[practice_ids, roles, user_campaign_id, campaign_data],
+                        countdown=delay  # Set delay until the scheduled time
+                    )
+                else:
+                    # If the scheduled time is in the past, send immediately
+                    send_campaign_messages.apply_async(
+                        args=[practice_ids, roles, user_campaign_id, campaign_data]
+                    )
                 # Send messages to relevant users
-                MessageService.send_messages(practice_ids, roles, user_campaign.id, campaign_data)
+                # MessageService.send_messages(practice_ids, roles, user_campaign.id, campaign_data)
 
                 # Return the serialized campaign sequence data
                 return UserCampaignSequenceSerializer(campaign_sequence).data
