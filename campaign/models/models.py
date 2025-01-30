@@ -78,11 +78,11 @@ class CampaignTarget(Base):
     __tablename__ = 'campaign_target'
 
     id = Column(BigInteger, primary_key=True)
-    campaign_id = Column(BigInteger, ForeignKey('user_campaigns.id'), nullable=False)
+    campaign_sequence_id = Column(BigInteger, ForeignKey('user_campaign_sequences.id'), nullable=False)  # Updated
     practice_id = Column(BigInteger, ForeignKey('practices.id'), nullable=False)
     role = Column(SQLEnum(UserRoleType), nullable=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
     # Relationships
-    campaign = relationship("UserCampaign", back_populates="targets")
+    campaign_sequence = relationship("UserCampaignSequence")  # Updated
     practice = relationship("Practice")
