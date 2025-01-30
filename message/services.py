@@ -1,10 +1,10 @@
 from datetime import datetime
+
+from sqlalchemy.exc import NoResultFound
 from sqlalchemy.orm import Session
 from centralised_models import Message
-from users.models import User
-from centralised_models import UserCampaign
-from .serializers import MessageSerializer
-
+from centralised_models import PracticeUserRole, UserCampaign
+from utils import db_manager
 
 class MessageService:
     """
@@ -56,6 +56,42 @@ class MessageService:
         # print(db_session.is_active)
         db_session.commit()
         return message
+
+    @staticmethod
+    def send_messages(practice_ids, roles, user_campaign_id, campaign_data):
+        with db_manager.get_db() as db_session:
+            try:
+                user_campaign = db_session.query(UserCampaign).filter(UserCampaign.id == user_campaign_id).first()
+                if not user_campaign:
+                    raise NoResultFound("User campaign not found.")
+
+                # Find all user IDs from the PracticeUserRole table for the given practice_ids and roles
+                users_to_notify = db_session.query(PracticeUserRole.user_id).filter(
+                    PracticeUserRole.practice_id.in_(practice_ids),
+                    PracticeUserRole.role.in_(roles)
+                ).all()
+                # If no users are found, return early
+                if not users_to_notify:
+                    return
+
+                # Iterate through the users and create messages for each one
+                for user_id in users_to_notify:
+                    # Create a message for each user
+                    message = Message(
+                        campaign_id=user_campaign.id,  # Changed from campaign_id
+                        recipient_id=user_id[0],  # user_id is returned as a tuple (user_id,)
+                        content=user_campaign.description,  # Reference to the campaign description
+                        status='UNREAD',  # Default status for a new message
+                        sent_at=campaign_data['scheduled_date'],
+                        practice_id=practice_ids[0],
+                    )
+                    db_session.add(message)
+
+                db_session.commit()  # Commit after adding all messages
+
+            except Exception as e:
+                db_session.rollback()  # Rollback in case of error
+                raise e  # Re-raise the error for further handling
 
     # @staticmethod
     # def get_message(db_session: Session, message_id: int):

@@ -103,10 +103,9 @@ class CampaignSequenceViewSet(viewsets.ViewSet):
             return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
     @authenticate
-    @authorize([UserRoleType.super_admin, UserRoleType.admin])
+    @authorize([UserRoleType.admin])
     @action(detail=False, methods=['post'])
     def create(self, request):
-        # print(request.data)
         # Extract practice_ids and roles from the request data
         practice_ids = request.data.get('practices', [])
         roles = request.data.get('roles', [])
@@ -128,6 +127,7 @@ class CampaignSequenceViewSet(viewsets.ViewSet):
             }, status=status.HTTP_201_CREATED)
 
         except Exception as e:
+            print("View Exception", str(e))
             return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
     # def create(self, request):

@@ -1,8 +1,9 @@
 from centralised_models import UserCampaignSequence, CampaignStatus, UserCampaign, CampaignTarget, PracticeUserRole, Message
 from utils import db_manager
 from ..serializers import UserCampaignSequenceSerializer
+from message.services import MessageService
 from sqlalchemy.orm.exc import NoResultFound
-
+from utils import db_manager
 
 class CampaignSequenceService:
     @staticmethod
@@ -21,49 +22,53 @@ class CampaignSequenceService:
         Returns:
             dict: Serialized data of the created campaign sequence.
         """
-        with db_manager.get_db() as db_session:
-            # Ensure that the UserCampaign exists
-            user_campaign = db_session.query(UserCampaign).filter(UserCampaign.id == user_campaign_id).first()
-            if not user_campaign:
-                raise NoResultFound("User campaign not found.")
+        try:
+            with db_manager.get_db() as db_session:
+                # Ensure that the UserCampaign exists
+                user_campaign = db_session.query(UserCampaign).filter(UserCampaign.id == user_campaign_id).first()
+                if not user_campaign:
+                    raise NoResultFound("User campaign not found.")
 
-            # Create a new campaign sequence entry
-            campaign_sequence = UserCampaignSequence(
-                user_campaign_id=user_campaign_id,
-                scheduled_date=campaign_data['scheduled_date'],
-                status='SCHEDULED',  # Default status, could be passed from request if needed
-                created_by=user.id
-            )
-            db_session.add(campaign_sequence)
-            db_session.flush()  # Ensure the ID is generated before using it
+                # Create a new campaign sequence entry
+                campaign_sequence = UserCampaignSequence(
+                    user_campaign_id=user_campaign_id,
+                    scheduled_date=campaign_data['scheduled_date'],
+                    status='SCHEDULED',  # Default status, could be passed from request if needed
+                    created_by=user.id
+                )
+                db_session.add(campaign_sequence)
 
-            # Create CampaignTarget entries
-            target_data = []
-            for practice_id in practice_ids:
-                for role in roles:
-                    target_data.append({
-                        'user_sequence_id': campaign_sequence.id,  # Changed from user_campaign_id
-                        'practice_id': practice_id,
-                        'role': role
-                    })
+                # Ensure the ID of campaign_sequence is generated and available
+                db_session.flush()
 
-            # print("target_data", target_data)
+                # Create CampaignTarget entries
+                target_data = []
+                for practice_id in practice_ids:
+                    for role in roles:
+                        target_data.append({
+                            'user_sequence_id': campaign_sequence.id,  # Changed from user_campaign_id
+                            'practice_id': practice_id,
+                            'role': role
+                        })
 
-            # Insert the CampaignTarget entries
-            CampaignSequenceService.create_campaign_targets(db_session, target_data)
+                # Insert the CampaignTarget entries
+                CampaignSequenceService.create_campaign_targets(db_session, target_data)
 
-            # print("campaign_sequence", campaign_sequence)
-            if user_campaign.type == "Custom":
-                user_campaign.status = "SENT"
+                # Commit all changes to the session (this is where the changes are saved to the DB)
+                db_session.commit()
 
-            db_session.commit()
+                # Send messages to relevant users
+                MessageService.send_messages(practice_ids, roles, user_campaign.id, campaign_data)
 
-            # Send messages to relevant users
-            CampaignSequenceService.send_messages(db_session, practice_ids, roles, user_campaign, user_campaign_id,
-                                                  user, campaign_data)
+                # Return the serialized campaign sequence data
+                return UserCampaignSequenceSerializer(campaign_sequence).data
 
-            # Return the serialized campaign sequence data
-            return UserCampaignSequenceSerializer(campaign_sequence).data
+        except Exception as e:
+            # In case of any exception, we handle it and rollback if necessary
+            db_session.rollback()  # Rollback the session to avoid partial commit
+            print(f"Error occurred while creating campaign sequence and targets: {str(e)}")
+            # You can customize this message or error handling logic
+            return {'error': str(e)}
 
     @staticmethod
     def create_campaign_targets(db_session, target_data):
@@ -87,51 +92,6 @@ class CampaignSequenceService:
                 db_session.add(campaign_target)
 
             db_session.commit()  # Commit the transaction after adding all targets
-        except Exception as e:
-            db_session.rollback()  # Rollback in case of error
-            raise e  # Re-raise the error for further handling
-
-    @staticmethod
-    def send_messages(db_session, practice_ids, roles, user_campaign, user_sequence_id, user, campaign_data):
-        """
-        Sends messages to users based on the practice_ids and roles.
-
-        Args:
-            db_session (Session): The SQLAlchemy session.
-            practice_ids (list): List of practice IDs to filter users.
-            roles (list): List of roles to filter users.
-            user_sequence_id (int): The ID of the campaign sequence.
-            user (User): The user who is initiating the message creation (typically the creator of the campaign).
-            campaign_data (dict): Additional data related to the campaign.
-
-        Returns:
-            None
-        """
-        try:
-            # Find all user IDs from the PracticeUserRole table for the given practice_ids and roles
-            users_to_notify = db_session.query(PracticeUserRole.user_id).filter(
-                PracticeUserRole.practice_id.in_(practice_ids),
-                PracticeUserRole.role.in_(roles)
-            ).all()
-
-            # If no users are found, return early
-            if not users_to_notify:
-                return
-
-            # Iterate through the users and create messages for each one
-            for user_id in users_to_notify:
-                # Create a message for each user
-                message = Message(
-                    campaign_sequence_id=user_sequence_id,  # Changed from campaign_id
-                    recipient_id=user_id[0],  # user_id is returned as a tuple (user_id,)
-                    content=user_campaign.description,  # Reference to the campaign description
-                    status='UNREAD',  # Default status for a new message
-                    sent_at=campaign_data['scheduled_date'],
-                )
-                db_session.add(message)
-
-            db_session.commit()  # Commit after adding all messages
-
         except Exception as e:
             db_session.rollback()  # Rollback in case of error
             raise e  # Re-raise the error for further handling
