@@ -4,6 +4,7 @@ from ..serializers import UserCampaignSequenceSerializer
 from sqlalchemy.orm.exc import NoResultFound
 from utils import db_manager
 from tasks import send_campaign_messages
+import pytz
 
 class CampaignSequenceService:
     @staticmethod
@@ -57,17 +58,22 @@ class CampaignSequenceService:
                 # Commit all changes to the session (this is where the changes are saved to the DB)
                 db_session.commit()
 
-                # Calculate the time delay based on scheduled_date
-                # scheduled_datetime = campaign_data['scheduled_date']
+                # Get the IST timezone
+                ist_timezone = pytz.timezone('Asia/Kolkata')
+
+                # Parse the scheduled date and make it timezone-aware
                 scheduled_datetime = datetime.strptime(campaign_data['scheduled_date'], "%Y-%m-%dT%H:%M")
-                current_time = datetime.now()
+                scheduled_datetime = ist_timezone.localize(scheduled_datetime)
+
+                # Get current time in IST
+                current_time = datetime.now(ist_timezone)
 
                 # If the scheduled time is in the future, schedule the message sending task
                 if scheduled_datetime > current_time:
                     delay = (scheduled_datetime - current_time).total_seconds()
                     send_campaign_messages.apply_async(
                         args=[practice_ids, roles, user_campaign_id, campaign_data],
-                        countdown=delay  # Set delay until the scheduled time
+                        eta=scheduled_datetime  # Use eta instead of countdown for more precise scheduling
                     )
                 else:
                     # If the scheduled time is in the past, send immediately
