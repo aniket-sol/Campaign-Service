@@ -28,7 +28,7 @@ class MessageViewSet(viewsets.ViewSet):
                     user_id=request.user.id,
                 )
 
-            return Response(MessageSerializer(message).data, status=status.HTTP_200_OK)
+            return Response(message, status=status.HTTP_200_OK)
             # return Response(message, status=status.HTTP_200_OK)
 
         except ValueError as e:

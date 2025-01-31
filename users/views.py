@@ -1,3 +1,5 @@
+from django.template.context_processors import request
+
 from .serializers import UserCreateSerializer, UserLoginSerializer, UserRequestCreateSerializer, UserRequestUpdateSerializer, UserRequestTableSerializer
 from .services import UserService, UserRequestService
 from utils import db_manager
@@ -83,6 +85,27 @@ class UserViewSet(ViewSet):
 
         except AuthenticationFailed as e:
             return Response({"error": str(e)}, status=status.HTTP_401_UNAUTHORIZED)
+
+    @authenticate
+    def change_password(self, request):
+        """
+        API endpoint for users to change their password.
+        """
+        user = request.user
+        current_password = request.data.get("current_password")
+        new_password = request.data.get("new_password")
+
+        if not current_password or not new_password:
+            return Response({"error": "All fields are required"}, status=status.HTTP_400_BAD_REQUEST)
+
+        with db_manager.get_db() as db_session:
+            user_service = UserService(db_session)
+            response = user_service.change_password(user, current_password, new_password)
+
+        if "error" in response:
+            return Response(response, status=status.HTTP_400_BAD_REQUEST)
+
+        return Response(response, status=status.HTTP_200_OK)
 
 
 class UserRequestViewSet(ViewSet):

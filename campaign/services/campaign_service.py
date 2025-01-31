@@ -58,7 +58,7 @@ class CampaignSequenceService:
                 db_session.commit()
 
                 # Calculate the time delay based on scheduled_date
-                scheduled_datetime = campaign_data['scheduled_date']
+                # scheduled_datetime = campaign_data['scheduled_date']
                 scheduled_datetime = datetime.strptime(campaign_data['scheduled_date'], "%Y-%m-%dT%H:%M")
                 current_time = datetime.now()
 

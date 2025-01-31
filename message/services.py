@@ -21,41 +21,33 @@ class MessageService:
         Returns:
             List[Message]: List of messages with `sent_at` less than or equal to the current timestamp.
         """
-        current_time = datetime.now()  # Get the current timestamp
-        messages = db_session.query(Message).filter(Message.recipient_id == user_id, Message.sent_at <= current_time).all()
+        # current_time = datetime.now()  # Get the current timestamp
+        messages = db_session.query(Message).filter(Message.recipient_id == user_id).all()
 
         if not messages:
             raise ValueError("No messages found with sent_at <= current timestamp")
 
         return messages
 
-
-
     @staticmethod
     def update_message(db_session: Session, message_id: int, user_id: int):
-        """
-        Update an existing message with new content, status, or sent_at.
-
-        Args:
-            db_session (Session): SQLAlchemy session.
-            message_id (int): The ID of the message to update.
-
-        Returns:
-            Message: The updated message instance.
-        """
-        # Find the message to update
         message = db_session.query(Message).filter(Message.id == message_id).first()
-        # print(message)
+
         if not message:
-            print("not found")
             raise ValueError("Message not found")
 
         if message.recipient_id == user_id:
             message.status = "READ"
 
-        # print(db_session.is_active)
         db_session.commit()
-        return message
+
+        # Convert the message object to a dictionary before returning
+        return {
+            "id": message.id,
+            "status": message.status.value if isinstance(message.status, Enum) else str(message.status),
+            "content": message.content,
+            "recipient_id": message.recipient_id,
+        }
 
     @staticmethod
     def send_messages(practice_ids, roles, user_campaign_id, campaign_data):
@@ -64,7 +56,7 @@ class MessageService:
                 user_campaign = db_session.query(UserCampaign).filter(UserCampaign.id == user_campaign_id).first()
                 if not user_campaign:
                     raise NoResultFound("User campaign not found.")
-
+                user_campaign.status = 'SENT'
                 # Find all user IDs from the PracticeUserRole table for the given practice_ids and roles
                 users_to_notify = db_session.query(PracticeUserRole.user_id).filter(
                     PracticeUserRole.practice_id.in_(practice_ids),

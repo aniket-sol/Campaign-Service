@@ -39,6 +39,28 @@ class UserService:
 
         return user
 
+    def change_password(self, user: User, current_password: str, new_password: str):
+        user_in_db = self.db_session.query(User).filter(User.id == user.id).first()
+
+        if not user_in_db:
+            return {"error": "User not found"}
+
+        if not pwd_context.verify(current_password, user_in_db.password):
+            return {"error": "Current password is incorrect"}
+
+        if len(new_password) < 6:
+            return {"error": "New password must be at least 6 characters long"}
+
+        # Update the password inside the session
+        user_in_db.password = pwd_context.hash(new_password)
+
+        self.db_session.commit()  # Commit changes to the database
+
+        return {"message": "Password changed successfully"}
+
+
+
+
     def get_user_practice_role(self, user_id: int) -> dict:
         """
         Retrieve the user's role from the practice_user_roles table.
