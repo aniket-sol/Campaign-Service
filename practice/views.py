@@ -124,7 +124,7 @@ class PracticeViewSet(viewsets.ViewSet):
             if error:
                 return Response({"error": error}, status=status.HTTP_404_NOT_FOUND)
 
-            return Response({"message": "Practice soft deleted successfully"}, status=status.HTTP_204_NO_CONTENT)
+            return Response({"message": "Practice soft deleted successfully"})
 
         except AuthenticationFailed as e:
             return Response({"error": str(e)}, status=status.HTTP_401_UNAUTHORIZED)

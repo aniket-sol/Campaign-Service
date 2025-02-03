@@ -35,7 +35,7 @@ class PracticeService:
     def get_practices():
         try:
             with db_manager.get_db() as db_session:
-                practices = db_session.query(Practice).all()
+                practices = db_session.query(Practice).filter(Practice.is_active == True).all()
                 return practices, None  # Return the list of practices and no error
         except Exception as e:
             return None, str(e)

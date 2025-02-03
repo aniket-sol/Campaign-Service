@@ -8,24 +8,24 @@ class PracticeSerializer(serializers.Serializer):
     created_at = serializers.DateTimeField(read_only=True)
     updated_at = serializers.DateTimeField(read_only=True)
 
-    def create(self, validated_data):
-        db_session = self.context.get('db_session')  # Pass the session via context
-        practice = Practice(**validated_data)
-        db_session.add(practice)
-        db_session.commit()
-        db_session.refresh(practice)
-        return practice
-
-    def update(self, instance, validated_data):
-        db_session = self.context.get('db_session')  # Pass the session via context
-        for attr, value in validated_data.items():
-            setattr(instance, attr, value)
-
-        db_session.commit()
-        db_session.refresh(instance)
-        return instance
+    # def create(self, validated_data):
+    #     db_session = self.context.get('db_session')  # Pass the session via context
+    #     practice = Practice(**validated_data)
+    #     db_session.add(practice)
+    #     db_session.commit()
+    #     db_session.refresh(practice)
+    #     return practice
+    #
+    # def update(self, instance, validated_data):
+    #     db_session = self.context.get('db_session')  # Pass the session via context
+    #     for attr, value in validated_data.items():
+    #         setattr(instance, attr, value)
+    #
+    #     db_session.commit()
+    #     db_session.refresh(instance)
+    #     return instance
 
 class PracticeDetailSerializer(serializers.Serializer):
     practice_id = serializers.IntegerField(read_only=True)
     practice_name = serializers.CharField(max_length=255)
-    role = serializers.CharField(max_length=255)
+    # role = serializers.CharField(max_length=255)
