@@ -1,13 +1,11 @@
 from datetime import datetime, timedelta
-from passlib.context import CryptContext
 from rest_framework.exceptions import AuthenticationFailed, PermissionDenied
 import uuid
 from users.models import User, UserSession, PracticeUserRole
-from utils import db_manager
+from utils import db_manager, pwd_context
 import pytz
 
 # Password hashing utility
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 now_aware = datetime.now(pytz.utc)
 
 class AuthService:
