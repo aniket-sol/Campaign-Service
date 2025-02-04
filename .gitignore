@@ -1,6 +1,5 @@
 .env
 .venv
 *.pyc
-.Dockerfile
-.docker-compose
-.celery_config
+Dockerfile
+docker-compose.yml
