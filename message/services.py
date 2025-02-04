@@ -1,5 +1,6 @@
 from datetime import datetime
 
+from sqlalchemy import Enum
 from sqlalchemy.exc import NoResultFound
 from sqlalchemy.orm import Session
 from centralised_models import Message
@@ -75,7 +76,6 @@ class MessageService:
                         content=user_campaign.description,  # Reference to the campaign description
                         status='UNREAD',  # Default status for a new message
                         sent_at=campaign_data['scheduled_date'],
-                        practice_id=practice_ids[0],
                     )
                     db_session.add(message)
 

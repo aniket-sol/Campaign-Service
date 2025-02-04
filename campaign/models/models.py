@@ -67,7 +67,7 @@ class Message(Base):
     read_at = Column(DateTime(timezone=True))
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.current_timestamp())
-    practice_id = Column(BigInteger, ForeignKey('practices.id'), nullable=False, default=2)  # Added practice_id reference
+    # practice_id = Column(BigInteger, ForeignKey('practices.id'), nullable=False, default=2)  # Added practice_id reference
 
     # Relationships
     campaign = relationship("UserCampaign", back_populates="messages")
