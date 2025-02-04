@@ -4,6 +4,7 @@ import uuid
 from users.models import User, UserSession, PracticeUserRole
 from utils import db_manager, pwd_context
 import pytz
+from typing import Union
 
 # Password hashing utility
 now_aware = datetime.now(pytz.utc)
@@ -14,7 +15,7 @@ class AuthService:
     """
 
     @staticmethod
-    def authenticate_user(email: str, password: str) -> dict[str, str | datetime]:
+    def authenticate_user(email: str, password: str) -> dict[str, Union[str, datetime]]:
         """
         Authenticates a user by their email and password, and creates a session.
 
