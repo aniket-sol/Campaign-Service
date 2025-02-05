@@ -1,0 +1,26 @@
+services:
+  # Your Django web service
+  - type: web
+    name: campaign-service
+    env: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn Campaign_Service.asgi:application -k uvicorn.workers.UvicornWorker --bind 0.0.0.0:$PORT
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.0
+      - key: DEBUG
+        value: False
+      - key: DJANGO_SETTINGS_MODULE
+        value: Campaign_Service.settings
+
+  # Celery worker service
+  - type: worker
+    name: campaign-service-worker
+    buildCommand: pip install -r requirements.txt
+    startCommand: celery -A Campaign_Service worker --loglevel=info
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.0
+      - key: DJANGO_SETTINGS_MODULE
+        value: Campaign_Service.settings
+    runtime: python
