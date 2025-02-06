@@ -72,13 +72,13 @@ class CampaignSequenceService:
                 if scheduled_datetime > current_time:
                     delay = (scheduled_datetime - current_time).total_seconds()
                     send_campaign_messages.apply_async(
-                        args=[practice_ids, roles, user_campaign_id, campaign_data],
+                        args=[practice_ids, roles, user_campaign_id, campaign_data, campaign_sequence.id],
                         eta=scheduled_datetime  # Use eta instead of countdown for more precise scheduling
                     )
                 else:
                     # If the scheduled time is in the past, send immediately
                     send_campaign_messages.apply_async(
-                        args=[practice_ids, roles, user_campaign_id, campaign_data]
+                        args=[practice_ids, roles, user_campaign_id, campaign_data, campaign_sequence.id]
                     )
                 # Send messages to relevant users
                 # MessageService.send_messages(practice_ids, roles, user_campaign.id, campaign_data)

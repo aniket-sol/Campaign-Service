@@ -4,7 +4,7 @@ from centralised_models import UserCampaign
 from message.services import MessageService
 
 @app.task
-def send_campaign_messages(practice_ids, roles, user_campaign_id, campaign_data):
+def send_campaign_messages(practice_ids, roles, user_campaign_id, campaign_data, campaign_sequence_id):
     """
     Celery task to send messages when the scheduled date is reached.
     """
@@ -13,7 +13,7 @@ def send_campaign_messages(practice_ids, roles, user_campaign_id, campaign_data)
             user_campaign = db_session.query(UserCampaign).filter(UserCampaign.id == user_campaign_id).first()
 
             if user_campaign:
-                MessageService.send_messages(practice_ids, roles, user_campaign_id, campaign_data)
+                MessageService.send_messages(practice_ids, roles, user_campaign_id, campaign_data, campaign_sequence_id)
             else:
                 print("User campaign not found.")
     except Exception as e:

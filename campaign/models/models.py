@@ -10,9 +10,8 @@ Base = db_manager.Base
 
 
 class CampaignStatus(enum.Enum):
-    DRAFT = "DRAFT"
     SCHEDULED = "SCHEDULED"
-    IN_PROGRESS = "SENT"
+    SENT = "SENT"
 
 class MessageStatus(enum.Enum):
     # PENDING = "PENDING"

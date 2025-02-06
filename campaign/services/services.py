@@ -12,7 +12,7 @@ class CampaignService:
             campaign = UserCampaign(
                 title=validated_data['title'],
                 description=validated_data.get('description'),
-                status=CampaignStatus.DRAFT.value,
+                status=CampaignStatus.SCHEDULED.value,
                 created_by=user.id,
                 type = campaign_type,
             )

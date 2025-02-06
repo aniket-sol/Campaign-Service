@@ -3,6 +3,8 @@ from datetime import datetime
 from sqlalchemy import Enum
 from sqlalchemy.exc import NoResultFound
 from sqlalchemy.orm import Session
+
+from campaign.models import UserCampaignSequence
 from centralised_models import Message
 from centralised_models import PracticeUserRole, UserCampaign
 from utils import db_manager
@@ -51,12 +53,16 @@ class MessageService:
         }
 
     @staticmethod
-    def send_messages(practice_ids, roles, user_campaign_id, campaign_data):
+    def send_messages(practice_ids, roles, user_campaign_id, campaign_data, campaign_sequence_id):
         with db_manager.get_db() as db_session:
             try:
                 user_campaign = db_session.query(UserCampaign).filter(UserCampaign.id == user_campaign_id).first()
                 if not user_campaign:
                     raise NoResultFound("User campaign not found.")
+                user_campaign_sequence = db_session.query(UserCampaignSequence).filter(UserCampaignSequence.id == campaign_sequence_id).first()
+                if user_campaign_sequence:
+                    user_campaign_sequence.status = 'SENT'
+
                 user_campaign.status = 'SENT'
                 # Find all user IDs from the PracticeUserRole table for the given practice_ids and roles
                 users_to_notify = db_session.query(PracticeUserRole.user_id).filter(
