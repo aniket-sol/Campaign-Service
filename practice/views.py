@@ -1,130 +1,135 @@
-from django.shortcuts import render
-
-# Create your views here.
 from rest_framework import viewsets
 from rest_framework.response import Response
-from rest_framework.decorators import action
 from rest_framework import status
-from rest_framework.exceptions import PermissionDenied
+from rest_framework.exceptions import PermissionDenied, AuthenticationFailed
 
-from users.auth import AuthService
-from users.models import Practice, UserRoleType
+from users.auth import authenticate, authorize
 from .serializers import PracticeSerializer
-from utils import db_manager
+from .serializers.serializers import PracticeDetailSerializer
+from .services import PracticeService
 
 
 class PracticeViewSet(viewsets.ViewSet):
-    """
-    A ViewSet for performing CRUD operations on the Practice model.
-    """
 
-    # This method checks if the user is authenticated for reading
-    def check_authenticated(self, request):
-        auth_header = request.META.get('HTTP_AUTHORIZATION')
-
-        if not auth_header:
-            return Response({"error": "Authorization header is missing"}, status=400)
-
-        parts = auth_header.split()
-
-        if len(parts) != 2 or parts[0].lower() != 'bearer':
-            return Response({"error": "Invalid authorization header format"}, status=400)
-
-        session_token = parts[1]
-
-        if not AuthService.validate_session(session_token):
-            return Response({"error": "Authentication required"}, status=status.HTTP_401_UNAUTHORIZED)
-
-    # This method checks if the user is authorized (admin role) for modifying data
-    def check_authorized(self, request):
-        session_token = request.data.get("session_token")
-        user_id = request.data.get("user_id")
-        if not AuthService.is_authorized(user_id, [UserRoleType.admin, UserRoleType.super_admin]):
-            raise PermissionDenied("You do not have permission to perform this action")
-
+    @authenticate
     def list(self, request):
-        """
-        List all practices (accessible for authenticated users).
-        """
-        # Check if the user is authenticated
-        if self.check_authenticated(request):
-            return self.check_authenticated(request)
+        try:
+            practices, error = PracticeService.get_practices()
 
-        with db_manager.get_db() as db_session:
-            practices = db_session.query(Practice).all()
+            if error:
+                return Response({"error": error}, status=status.HTTP_400_BAD_REQUEST)
+
+            # Serialize the practice data
             serializer = PracticeSerializer(practices, many=True)
             return Response(serializer.data)
 
+        except AuthenticationFailed as e:
+            return Response({"error": str(e)}, status=status.HTTP_401_UNAUTHORIZED)
+        except Exception as e:
+            return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+    @authenticate
+    def list_enrolled_practices(self, request):
+        try:
+            practices, error = PracticeService.get_enrolled_practices(request.user)
+
+            if error:
+                return Response({"error": error}, status=status.HTTP_400_BAD_REQUEST)
+
+            # Serialize the practice data
+            serializer = PracticeDetailSerializer(practices, many=True)
+            return Response(serializer.data)
+            # return Response(practices)
+        except AuthenticationFailed as e:
+            return Response({"error": str(e)}, status=status.HTTP_401_UNAUTHORIZED)
+        except Exception as e:
+            return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+    @authenticate
+    @authorize([])
     def create(self, request):
-        self.check_authorized(request)
+        try:
+            data = request.data
+            practice_data, error = PracticeService.create_practice(data)
 
-        data = request.data
-        with db_manager.get_db() as db_session:
-            try:
-                practice = Practice(
-                    name=data['name'],
-                    is_active=data.get('is_active', True)
-                )
-                db_session.add(practice)
-                db_session.commit()
-                return Response({"message": "Practice created successfully", "practice_id": practice.id},
-                                status=status.HTTP_201_CREATED)
-            except Exception as e:
-                db_session.rollback()
-                return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+            if error:
+                print("error", error)
+                return Response({"error": error}, status=status.HTTP_400_BAD_REQUEST)
 
+            return Response(
+                {"message": "Practice created successfully", "practice_id": practice_data["id"]},
+                status=status.HTTP_201_CREATED
+            )
+        except AuthenticationFailed as e:
+            print("Authentication Failed", str(e))
+            return Response({"error": str(e)}, status=status.HTTP_401_UNAUTHORIZED)
+        except PermissionDenied as e:
+            print("PermissionDenied", str(e))
+            return Response({"error": str(e)}, status=status.HTTP_403_FORBIDDEN)
+        except Exception as e:
+            print("Exception this", str(e))
+            return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+    @authenticate
     def retrieve(self, request, pk=None):
         """
         Retrieve a specific practice (accessible for authenticated users).
         """
-        # Check if the user is authenticated
-        if self.check_authenticated(request):
-            return self.check_authenticated(request)
+        try:
+            practice, error = PracticeService.get_practice_by_id(pk)
 
-        with db_manager.get_db() as db_session:
-            practice = db_session.query(Practice).filter(Practice.id == pk).first()
+            if error:
+                return Response({"error": error}, status=status.HTTP_404_NOT_FOUND)
 
-            if not practice:
-                return Response({"error": "Practice not found"}, status=status.HTTP_404_NOT_FOUND)
-
+            # Serialize the practice data
             serializer = PracticeSerializer(practice)
             return Response(serializer.data)
 
+        except AuthenticationFailed as e:
+            return Response({"error": str(e)}, status=status.HTTP_401_UNAUTHORIZED)
+        except Exception as e:
+            return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+    @authenticate
+    @authorize([])
     def update(self, request, pk=None):
         """
         Update a specific practice (accessible for admins).
         """
-        # Check if the user is authorized (admin)
-        self.check_authorized(request)
+        try:
+            data = request.data
+            practice, error = PracticeService.update_practice(pk, data)
 
-        data = request.data
-        with db_manager.get_db() as db_session:
-            practice = db_session.query(Practice).filter(Practice.id == pk).first()
-
-            if not practice:
-                return Response({"error": "Practice not found"}, status=status.HTTP_404_NOT_FOUND)
-
-            # Update the practice fields
-            practice.name = data.get('name', practice.name)
-            practice.is_active = data.get('is_active', practice.is_active)
-            db_session.commit()
+            if error:
+                return Response({"error": error}, status=status.HTTP_404_NOT_FOUND)
 
             return Response({"message": "Practice updated successfully"})
 
+        except AuthenticationFailed as e:
+            return Response({"error": str(e)}, status=status.HTTP_401_UNAUTHORIZED)
+        except PermissionDenied as e:
+            return Response({"error": str(e)}, status=status.HTTP_403_FORBIDDEN)
+        except Exception as e:
+            return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+    @authenticate
+    @authorize([])
     def destroy(self, request, pk=None):
         """
         Delete a specific practice (accessible for admins).
         """
-        # Check if the user is authorized (admin)
-        self.check_authorized(request)
+        try:
+            practice, error = PracticeService.soft_delete_practice(pk)
 
-        with db_manager.get_db() as db_session:
-            practice = db_session.query(Practice).filter(Practice.id == pk).first()
+            if error:
+                return Response({"error": error}, status=status.HTTP_404_NOT_FOUND)
 
-            if not practice:
-                return Response({"error": "Practice not found"}, status=status.HTTP_404_NOT_FOUND)
+            return Response({"message": "Practice soft deleted successfully"})
 
-            db_session.delete(practice)
-            db_session.commit()
+        except AuthenticationFailed as e:
+            return Response({"error": str(e)}, status=status.HTTP_401_UNAUTHORIZED)
+        except PermissionDenied as e:
+            return Response({"error": str(e)}, status=status.HTTP_403_FORBIDDEN)
+        except Exception as e:
+            return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
-            return Response({"message": "Practice deleted successfully"}, status=status.HTTP_204_NO_CONTENT)

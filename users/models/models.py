@@ -1,5 +1,6 @@
 from sqlalchemy import Column, Integer, String, DateTime, Boolean, Enum as SQLAEnum, ForeignKey, BigInteger
 from sqlalchemy.orm import relationship, declarative_base
+from sqlalchemy.dialects.postgresql import ENUM
 from sqlalchemy.sql import func
 from enum import Enum
 from utils.db_manager import db_manager
@@ -9,8 +10,8 @@ Base = db_manager.Base
 
 # SQLAlchemy Models
 class UserRoleType(str, Enum):
-    super_admin = "Practice by Numbers Support"
-    admin = "Admin"
+    super_admin = "Super Admin"
+    admin = "Practice Admin"
     practice_user = "Practice User"
 
 
@@ -28,7 +29,8 @@ class User(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
     last_login = Column(DateTime(timezone=True), nullable=True)
-    role = Column(SQLAEnum(UserRoleType), nullable=False, default=UserRoleType.practice_user)
+    is_super_admin = Column(Boolean, default=False)  # New column
+    # role = Column(SQLAEnum(UserRoleType), nullable=False, default=UserRoleType.practice_user) deleted
 
     # Relationships
     practice_roles = relationship("PracticeUserRole", back_populates="user", cascade="all, delete")
@@ -56,6 +58,7 @@ class PracticeUserRole(Base):
     id = Column(BigInteger, primary_key=True)
     user_id = Column(BigInteger, ForeignKey('users.id'), nullable=False)
     practice_id = Column(BigInteger, ForeignKey('practices.id'), nullable=False)
+    role = Column(SQLAEnum(UserRoleType), nullable=False, default=UserRoleType.practice_user)  # Role column added
 
     # Relationships
     practice = relationship("Practice", back_populates="practice_users")
@@ -75,3 +78,13 @@ class UserSession(Base):
     # Relationships
     user = relationship("User", back_populates="sessions")
 
+class UserRequestTable(Base):
+    __tablename__ = 'user_request_tables'
+    id = Column(BigInteger, primary_key=True)
+    user_id = Column(BigInteger, ForeignKey('users.id'), nullable=False)
+    practice_id = Column(BigInteger, ForeignKey('practices.id'), nullable=False)
+    is_active = Column(Boolean, default=True)
+    role = Column(ENUM(UserRoleType, name="userroletype", create_type=False), nullable=False, default=UserRoleType.practice_user)
+    status = Column(Boolean, nullable=False, default=False)
+    updated_at = Column(DateTime(timezone=True), server_default=func.now())
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
