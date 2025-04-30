@@ -7,7 +7,7 @@ from rest_framework.decorators import action
 from rest_framework.exceptions import AuthenticationFailed
 from rest_framework import status
 from passlib.context import CryptContext
-from .models import User, UserSession
+from .models import User, UserSession, UserRoleType
 # from .permissions import IsAuthorized, IsAuthenticated
 from .auth import AuthService
 from .auth import authenticate, authorize
@@ -108,6 +108,24 @@ class UserRequestViewSet(ViewSet):
             }, status=status.HTTP_200_OK)
 
     @authenticate
+    @authorize([UserRoleType.admin])
+    def list_active_entries_practice_wise(self, request, pk):
+        """
+        List all active user request entries (where is_active is True).
+        """
+        print("Got the request")
+        with db_manager.get_db() as db_session:
+            active_entries = UserRequestService.get_active_entries_practice_wise(db_session, pk)
+            if not active_entries:
+                return Response({"message": "No active entries found"}, status=status.HTTP_404_NOT_FOUND)
+            serialized_entries = UserRequestTableSerializer(active_entries, many=True)
+            # print(serialized_entries.data)
+            return Response({
+                "message": "Active entries fetched successfully",
+                "entries": serialized_entries.data
+            }, status=status.HTTP_200_OK)
+
+    @authenticate
     def create(self, request):
         """
         Create a new entry in the UserRequestTable.
@@ -133,7 +151,7 @@ class UserRequestViewSet(ViewSet):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     @authenticate
-    @authorize([])
+    @authorize([UserRoleType.admin])
     def partial_update(self, request, pk=None):
         """
         Update the status and is_active fields of a UserRequestTable entry.
